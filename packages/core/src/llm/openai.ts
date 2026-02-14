@@ -185,6 +185,16 @@ export class OpenAIClient implements LLMClient {
     if (this.model.startsWith('gemini-')) {
       return 1048576;
     }
+    // xAI Grok models have 131k context
+    if (this.model.startsWith('grok-')) {
+      return 131072;
+    }
+    // Mistral models have 128k context
+    if (this.model.startsWith('mistral-') || this.model.startsWith('codestral') ||
+        this.model.startsWith('ministral') || this.model.startsWith('magistral') ||
+        this.model.startsWith('devstral') || this.model.startsWith('pixtral')) {
+      return 128000;
+    }
     // Fallback for any other OpenAI models
     return 128000;
   }
