@@ -50,15 +50,30 @@ const SYNC_END = '\x1b[?2026l';
 
 /**
  * Patch stdout.write to use synchronized output (DEC 2026)
- * This batches writes and flushes them atomically, preventing partial renders
- * that can destroy scrollback in terminals like Ghostty.
+ *
+ * Buffers all writes within a single synchronous frame (Ink render cycle) and
+ * flushes them atomically in a single DEC 2026 sync block via queueMicrotask.
+ * This prevents Ghostty (and similar terminals) from rendering partial frames
+ * between individual write() calls, which caused the entire conversation
+ * history to visually duplicate on every new message.
+ *
+ * Microtasks run after the current synchronous task completes but before any
+ * I/O events, so terminal query/response sequences (used by ink-picture for
+ * Sixel/iTerm2 inline images) still work correctly.
  */
 function enableSynchronizedOutput(): () => void {
   const originalWrite = process.stdout.write.bind(process.stdout);
+  let buffer = '';
+  let flushScheduled = false;
 
-  // Wrap each write in DEC 2026 synchronized output markers.
-  // Unlike the previous buffering approach, this writes through immediately
-  // which preserves stdin/stdout escape sequence communication (needed by ink-picture).
+  function flush() {
+    flushScheduled = false;
+    if (!buffer) return;
+    const output = buffer;
+    buffer = '';
+    originalWrite(SYNC_START + output + SYNC_END);
+  }
+
   process.stdout.write = function (
     chunk: string | Uint8Array,
     encodingOrCallback?: BufferEncoding | ((err?: Error) => void),
@@ -66,11 +81,25 @@ function enableSynchronizedOutput(): () => void {
   ): boolean {
     const raw = typeof chunk === 'string' ? chunk : chunk.toString();
     const safe = sanitizeTerminalOutput(raw);
-    return originalWrite(SYNC_START + safe + SYNC_END, encodingOrCallback as any, callback as any);
+    buffer += safe;
+
+    if (!flushScheduled) {
+      flushScheduled = true;
+      queueMicrotask(flush);
+    }
+
+    // Invoke callbacks — the data is accepted (buffered), so report success.
+    if (typeof encodingOrCallback === 'function') {
+      encodingOrCallback();
+    } else if (callback) {
+      callback();
+    }
+    return true;
   } as typeof process.stdout.write;
 
   // Return cleanup function
   return () => {
+    flush();
     process.stdout.write = originalWrite as typeof process.stdout.write;
   };
 }
