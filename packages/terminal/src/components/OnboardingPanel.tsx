@@ -383,9 +383,9 @@ export function OnboardingPanel({
         } else if (key.downArrow) {
           setSelectedConnectorIndex((prev) => Math.min(connectorList.length - 1, prev + 1));
         } else if (input === ' ') {
-          // Toggle connector (only installed ones)
+          // Toggle connector selection
           const item = connectorList[selectedConnectorIndex];
-          if (item && item.installed) {
+          if (item) {
             setEnabledConnectors((prev) => {
               const next = new Set(prev);
               if (next.has(item.name)) {
@@ -660,8 +660,7 @@ export function OnboardingPanel({
         <ProgressBar step={stepIndex} total={STEPS.length} />
         <Text bold>Connectors</Text>
         <Box marginTop={1} marginBottom={1} flexDirection="column">
-          <Text color="gray">Connectors integrate external services. Install packages to add more.</Text>
-          <Text color="gray" dimColor>Coming soon: <Text color="cyan">bun add -g @hasna/connectors</Text></Text>
+          <Text color="gray">Select connectors to enable. Uninstalled ones will be installed automatically.</Text>
         </Box>
         <Box flexDirection="column">
           {visibleRange.hasMore.above > 0 && (
@@ -670,24 +669,20 @@ export function OnboardingPanel({
           {visibleConnectors.map((connector, visibleIdx) => {
             const actualIdx = visibleRange.start + visibleIdx;
             const isSelected = actualIdx === selectedConnectorIndex;
-            const enabled = connector.installed && enabledConnectors.has(connector.name);
+            const enabled = enabledConnectors.has(connector.name);
             const desc = connector.desc || '';
             const descDisplay = desc.length > 32 ? desc.slice(0, 29) + '...' : desc;
-            const checkbox = connector.installed ? (enabled ? 'x' : ' ') : ' ';
+            const checkbox = enabled ? 'x' : ' ';
             return (
               <Box key={connector.name}>
                 <Text color={isSelected ? 'cyan' : 'gray'}>
                   {isSelected ? '> ' : '  '}
                 </Text>
-                <Text color={connector.installed ? (enabled ? 'green' : 'gray') : 'gray'}>
+                <Text color={enabled ? 'green' : 'gray'}>
                   [{checkbox}]
                 </Text>
                 <Text> {connector.name}</Text>
-                {connector.installed ? (
-                  <Text color="gray">  {descDisplay}</Text>
-                ) : (
-                  <Text dimColor>  (not installed) {connector.install}</Text>
-                )}
+                <Text color="gray">  {descDisplay}</Text>
               </Box>
             );
           })}
@@ -696,7 +691,7 @@ export function OnboardingPanel({
           )}
         </Box>
         <Box marginTop={1} flexDirection="column">
-          <Text color="gray">Arrow keys to move, Space to toggle installed, Enter to continue</Text>
+          <Text color="gray">Arrow keys to move, Space to toggle, Enter to continue</Text>
           <Text color="gray">Esc or B to go back</Text>
         </Box>
       </Box>
@@ -713,7 +708,7 @@ export function OnboardingPanel({
         <Text bold>Skills</Text>
         <Box marginTop={1} marginBottom={1} flexDirection="column">
           <Text color="gray">Skills teach your assistant specialized workflows.</Text>
-          <Text color="gray" dimColor>Coming soon: <Text color="cyan">bun add -g @hasna/skills</Text></Text>
+          <Text color="gray">Install skills with: <Text color="cyan">bun add -g @hasna/skills</Text></Text>
         </Box>
         {skillsList.length > 0 ? (
           <Box flexDirection="column">
@@ -735,7 +730,7 @@ export function OnboardingPanel({
           </Box>
         ) : (
           <Box marginBottom={1}>
-            <Text dimColor>  No skills discovered. Add SKILL.md files to ~/.assistants/skills/</Text>
+            <Text dimColor>  No skills installed. Run <Text color="cyan">bun add -g @hasna/skills</Text> to get started.</Text>
           </Box>
         )}
         <Box marginTop={1} flexDirection="column">
