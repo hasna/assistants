@@ -5,6 +5,8 @@ import type { Tool } from '@hasna/assistants-shared';
 import type { ToolExecutor } from './registry';
 import { generateId } from '@hasna/assistants-shared';
 import { isPrivateHostOrResolved } from '../security/network-validator';
+import { fetchWithTimeout } from '../utils/fetch-with-timeout';
+import { ErrorCodes, ToolExecutionError } from '../errors';
 
 // Security limits for image fetching
 const FETCH_TIMEOUT_MS = 30_000; // 30 seconds
@@ -57,15 +59,9 @@ export class ImageDisplayTool {
         }
 
         // Fetch with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-        let response: Response;
-        try {
-          response = await fetch(imagePath, { signal: controller.signal });
-        } finally {
-          clearTimeout(timeoutId);
-        }
+        const response = await fetchWithTimeout(imagePath, {
+          timeout: FETCH_TIMEOUT_MS,
+        });
 
         if (!response.ok) {
           return `Error: Failed to fetch image: HTTP ${response.status}`;
@@ -121,6 +117,10 @@ export class ImageDisplayTool {
         writeFileSync(tempFile, buffer);
         localPath = tempFile;
       } catch (error) {
+        // fetchWithTimeout wraps AbortError in a ToolExecutionError with TOOL_TIMEOUT code
+        if (error instanceof ToolExecutionError && error.code === ErrorCodes.TOOL_TIMEOUT) {
+          return `Error: Image fetch timed out after ${FETCH_TIMEOUT_MS / 1000} seconds`;
+        }
         if (error instanceof Error && error.name === 'AbortError') {
           return `Error: Image fetch timed out after ${FETCH_TIMEOUT_MS / 1000} seconds`;
         }
@@ -145,11 +145,141 @@ export class ImageDisplayTool {
 }
 
 /**
+ * ImageGenerate tool - generate images using OpenAI gpt-image models
+ *
+ * Uses the OpenAI Images API to generate images from text prompts.
+ * Returns a structured JSON result with the image path for terminal display.
+ */
+export class ImageGenerateTool {
+  static readonly tool: Tool = {
+    name: 'generate_image',
+    description:
+      'Generate an image from a text description using AI (OpenAI gpt-image). ' +
+      'Returns the generated image for display. Requires OPENAI_API_KEY.',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'Text description of the desired image',
+        },
+        model: {
+          type: 'string',
+          description: 'Image model to use (default: gpt-image-1)',
+          enum: ['gpt-image-1'],
+        },
+        size: {
+          type: 'string',
+          description: 'Image size (default: 1024x1024)',
+          enum: ['1024x1024', '1024x1536', '1536x1024'],
+        },
+        quality: {
+          type: 'string',
+          description: 'Image quality (default: medium)',
+          enum: ['low', 'medium', 'high'],
+        },
+        output_format: {
+          type: 'string',
+          description: 'Output format (default: png)',
+          enum: ['png', 'jpeg', 'webp'],
+        },
+      },
+      required: ['prompt'],
+    },
+  };
+
+  static readonly executor: ToolExecutor = async (input) => {
+    const prompt = input.prompt as string;
+    const model = (input.model as string) || 'gpt-image-1';
+    const size = (input.size as string) || '1024x1024';
+    const quality = (input.quality as string) || 'medium';
+    const outputFormat = (input.output_format as string) || 'png';
+
+    if (!prompt || typeof prompt !== 'string') {
+      return 'Error: prompt is required';
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return 'Error: OPENAI_API_KEY is required for image generation. Set it in env or ~/.secrets.';
+    }
+
+    try {
+      const response = await fetchWithTimeout('https://api.openai.com/v1/images/generations', {
+        timeout: 120_000, // 2 min - image gen can be slow
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          prompt,
+          n: 1,
+          size,
+          quality,
+          output_format: outputFormat,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return `Error: Image generation failed (${response.status}): ${errorText || response.statusText}`;
+      }
+
+      const result = (await response.json()) as {
+        data?: Array<{ b64_json?: string; url?: string }>;
+      };
+
+      const imageData = result.data?.[0];
+      if (!imageData) {
+        return 'Error: No image returned from API';
+      }
+
+      if (imageData.b64_json) {
+        // Save base64 image to temp file
+        const buffer = Buffer.from(imageData.b64_json, 'base64');
+        const tempFile = join(tmpdir(), `assistants-imagegen-${generateId()}.${outputFormat}`);
+        writeFileSync(tempFile, buffer);
+
+        return JSON.stringify({
+          generated: true,
+          path: tempFile,
+          alt: prompt.slice(0, 100),
+          model,
+          size,
+          quality,
+        });
+      }
+
+      if (imageData.url) {
+        return JSON.stringify({
+          generated: true,
+          url: imageData.url,
+          alt: prompt.slice(0, 100),
+          model,
+          size,
+          quality,
+        });
+      }
+
+      return 'Error: Unexpected API response format';
+    } catch (error) {
+      if (error instanceof ToolExecutionError && error.code === ErrorCodes.TOOL_TIMEOUT) {
+        return 'Error: Image generation timed out after 120 seconds';
+      }
+      return `Error: Image generation failed: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  };
+}
+
+/**
  * Image tools collection
  */
 export class ImageTools {
   static registerAll(registry: { register: (tool: Tool, executor: ToolExecutor) => void }): void {
     registry.register(ImageDisplayTool.tool, ImageDisplayTool.executor);
+    registry.register(ImageGenerateTool.tool, ImageGenerateTool.executor);
   }
 }
 
