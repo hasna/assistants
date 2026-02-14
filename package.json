@@ -1,5 +1,5 @@
 {
-  "name": "open-assistants",
+  "name": "@hasna/assistants",
   "version": "0.1.0",
   "description": "Personal AI assistant that runs in your terminal — powered by Claude",
   "type": "module",
