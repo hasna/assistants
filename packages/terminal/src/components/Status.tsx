@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { basename } from 'path';
 import { Box, Text } from 'ink';
-import type { EnergyState, VoiceState, ActiveIdentityInfo, HeartbeatState } from '@hasna/assistants-shared';
+import type { VoiceState, ActiveIdentityInfo, HeartbeatState } from '@hasna/assistants-shared';
 
 interface TokenUsage {
   inputTokens: number;
@@ -24,7 +24,7 @@ interface StatusProps {
   cwd: string;
   queueLength?: number;
   tokenUsage?: TokenUsage;
-  energyState?: EnergyState;
+
   voiceState?: VoiceState;
   heartbeatState?: HeartbeatState;
   identityInfo?: ActiveIdentityInfo;
@@ -42,7 +42,6 @@ export function Status({
   cwd,
   queueLength = 0,
   tokenUsage,
-  energyState,
   voiceState,
   heartbeatState,
   identityInfo,
@@ -135,11 +134,6 @@ export function Status({
     ? ` +${backgroundProcessingCount}`
     : '';
 
-  // Energy indicator (compact, flat)
-  const energyInfo = energyState
-    ? `${Math.round((energyState.current / energyState.max) * 100)}%`
-    : '';
-
   // Voice indicator (flat text)
   const voiceLabel = voiceState?.enabled
     ? voiceState.isTalking ? 'talk' : voiceState.isListening ? 'mic' : voiceState.isSpeaking ? 'spk' : 'voice'
@@ -188,7 +182,7 @@ export function Status({
   if (isProcessing) rightParts.push('esc');
   if (isProcessing && processingStartTime) rightParts.push(formatDuration(elapsed));
   if (sessionInfo) rightParts.push(`${sessionInfo}${bgIndicator}`);
-  if (energyInfo) rightParts.push(energyInfo);
+
   if (contextInfo) rightParts.push(contextInfo);
   if (verboseLabel) rightParts.push(verboseLabel);
   if (queueInfo) rightParts.push(queueInfo);

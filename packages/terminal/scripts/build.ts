@@ -317,7 +317,7 @@ export interface AssistantsConfig {
   hooks?: Record<string, unknown>;
   scheduler?: Record<string, unknown>;
   context?: Record<string, unknown>;
-  energy?: Record<string, unknown>;
+
   memory?: Record<string, unknown>;
 }
 

@@ -11,7 +11,7 @@ import {
 } from '@hasna/assistants-shared';
 
 type ConfigLocation = 'user' | 'project' | 'local';
-type ConfigSection = 'overview' | 'model' | 'context' | 'memory' | 'subassistants' | 'voice' | 'energy' | 'statusLine';
+type ConfigSection = 'overview' | 'model' | 'context' | 'memory' | 'subassistants' | 'voice' | 'statusLine';
 
 interface ConfigPanelProps {
   config: AssistantsConfig;
@@ -29,7 +29,7 @@ const SECTIONS: { id: ConfigSection; name: string }[] = [
   { id: 'memory', name: 'Memory' },
   { id: 'subassistants', name: 'Subassistants' },
   { id: 'voice', name: 'Voice' },
-  { id: 'energy', name: 'Energy' },
+
   { id: 'statusLine', name: 'Status Line' },
 ];
 
@@ -59,11 +59,6 @@ export function ConfigPanel({
     configModelIndex >= 0 ? configModelIndex : defaultModelIndex
   );
   const [maxTokens, setMaxTokens] = useState(config.llm?.maxTokens ?? 8192);
-
-  // Energy editing state
-  const [selectedEnergyField, setSelectedEnergyField] = useState(0);
-  const [energyMaxEnergy, setEnergyMaxEnergy] = useState(config.energy?.maxEnergy ?? 10000);
-  const [energyRegenRate, setEnergyRegenRate] = useState(config.energy?.regenRate ?? 500);
 
   // Clear message after 3 seconds
   useEffect(() => {
@@ -156,8 +151,6 @@ export function ConfigPanel({
         handleSaveField('memory.enabled', !config.memory?.enabled);
       } else if (section.id === 'voice') {
         handleSaveField('voice.enabled', !config.voice?.enabled);
-      } else if (section.id === 'energy') {
-        handleSaveField('energy.enabled', !config.energy?.enabled);
       }
       return;
     }
@@ -188,37 +181,6 @@ export function ConfigPanel({
       return;
     }
 
-    if (section.id === 'energy' && !editingField && input !== 't' && input !== 'T') {
-      if (key.upArrow) {
-        setSelectedEnergyField((prev) => (prev === 0 ? 1 : 0));
-        return;
-      }
-      if (key.downArrow) {
-        setSelectedEnergyField((prev) => (prev === 1 ? 0 : 1));
-        return;
-      }
-      if (key.leftArrow) {
-        if (selectedEnergyField === 0) {
-          setEnergyMaxEnergy((prev: number) => Math.max(1000, prev - 1000));
-        } else {
-          setEnergyRegenRate((prev: number) => Math.max(100, prev - 100));
-        }
-        return;
-      }
-      if (key.rightArrow) {
-        if (selectedEnergyField === 0) {
-          setEnergyMaxEnergy((prev: number) => Math.min(100000, prev + 1000));
-        } else {
-          setEnergyRegenRate((prev: number) => Math.min(5000, prev + 100));
-        }
-        return;
-      }
-      if (key.return || input === 's' || input === 'S') {
-        setMode('location-select');
-        return;
-      }
-      return;
-    }
 
     if (section.id === 'statusLine' && !editingField) {
       const sl = config.statusLine || {};
@@ -318,16 +280,6 @@ export function ConfigPanel({
             provider: selectedModel?.provider ?? config.llm?.provider ?? 'anthropic',
             model: selectedModel?.id ?? config.llm?.model ?? DEFAULT_MODEL,
             maxTokens,
-          },
-        };
-      }
-
-      if (!saveUpdates && section.id === 'energy') {
-        saveUpdates = {
-          energy: {
-            ...config.energy,
-            maxEnergy: energyMaxEnergy,
-            regenRate: energyRegenRate,
           },
         };
       }
@@ -597,50 +549,6 @@ export function ConfigPanel({
             </Box>
             <Box marginTop={1}>
               <Text dimColor>Press t to toggle enabled | Esc to go back</Text>
-            </Box>
-          </Box>
-        );
-
-      case 'energy':
-        return (
-          <Box flexDirection="column">
-            <Text bold>Energy Settings</Text>
-            <Box marginTop={1} flexDirection="column">
-              <Text>
-                Enabled: <Text color={config.energy?.enabled ? 'green' : 'red'}>{config.energy?.enabled ? 'Yes' : 'No'}</Text>
-                <Text dimColor> (t to toggle) {getSource('energy.enabled')}</Text>
-              </Text>
-              <Box>
-                <Text inverse={selectedEnergyField === 0}>
-                  {selectedEnergyField === 0 ? '>' : ' '} Max Energy: <Text color="cyan">{energyMaxEnergy}</Text>
-                </Text>
-                {selectedEnergyField === 0 && (
-                  <Text dimColor> (←→ adjust)</Text>
-                )}
-              </Box>
-              <Box>
-                <Text inverse={selectedEnergyField === 1}>
-                  {selectedEnergyField === 1 ? '>' : ' '} Regen Rate: <Text color="cyan">{energyRegenRate}</Text>/min
-                </Text>
-                {selectedEnergyField === 1 && (
-                  <Text dimColor> (←→ adjust)</Text>
-                )}
-              </Box>
-              <Text>
-                Low Threshold: <Text color="cyan">{config.energy?.lowEnergyThreshold ?? 3000}</Text>
-              </Text>
-              <Text>
-                Critical Threshold: <Text color="cyan">{config.energy?.criticalThreshold ?? 1000}</Text>
-              </Text>
-            </Box>
-            <Box marginTop={1}>
-              <Text dimColor>Costs:</Text>
-              <Text dimColor>  Message: {config.energy?.costs?.message ?? 200}</Text>
-              <Text dimColor>  Tool Call: {config.energy?.costs?.toolCall ?? 500}</Text>
-              <Text dimColor>  LLM Call: {config.energy?.costs?.llmCall ?? 300}</Text>
-            </Box>
-            <Box marginTop={1}>
-              <Text dimColor>↑↓ select | ←→ adjust | t toggle | Enter/s save | Esc back</Text>
             </Box>
           </Box>
         );

@@ -53,12 +53,6 @@ async function debugInit() {
     log(`    Done in ${Date.now() - start4}ms`);
     log(`    Commands count: ${commands.length}`);
 
-    log('\n[5] Getting energy state...');
-    const start5 = Date.now();
-    const energy = session.client.getEnergyState();
-    log(`    Done in ${Date.now() - start5}ms`);
-    log(`    Energy: ${JSON.stringify(energy)}`);
-
     log('\n========================================');
     log(`TOTAL: ${Date.now() - startTotal}ms`);
     log('========================================');

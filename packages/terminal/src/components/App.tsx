@@ -4,7 +4,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { Box, Text, useApp, useStdout, Static } from 'ink';
 import { SessionRegistry, SessionStorage, findRecoverableSessions, clearRecoveryState, ConnectorBridge, listTemplates, createIdentityFromTemplate, AudioRecorder, ElevenLabsSTT, WhisperSTT, readHeartbeatHistoryBySession, type SessionInfo, type RecoverableSession, type CreateAssistantOptions, type CreateIdentityOptions, type Heartbeat, type SavedSessionInfo, type CreateSessionOptions, type Identity, type Memory, type MemoryStats } from '@hasna/assistants-core';
-import type { StreamChunk, Message, ToolCall, ToolResult, TokenUsage, EnergyState, VoiceState, HeartbeatState, ActiveIdentityInfo, AskUserRequest, AskUserResponse, InterviewRequest, InterviewResponse, Connector, HookConfig, HookEvent, HookHandler, ScheduledCommand, Skill } from '@hasna/assistants-shared';
+import type { StreamChunk, Message, ToolCall, ToolResult, TokenUsage, VoiceState, HeartbeatState, ActiveIdentityInfo, AskUserRequest, AskUserResponse, InterviewRequest, InterviewResponse, Connector, HookConfig, HookEvent, HookHandler, ScheduledCommand, Skill } from '@hasna/assistants-shared';
 import { InterviewStore } from '@hasna/assistants-core';
 import { generateId, now } from '@hasna/assistants-shared';
 import { Input, type InputHandle } from './Input';
@@ -365,7 +365,7 @@ interface SessionUIState {
   toolCalls: ToolCall[];
   toolResults: ToolResult[];
   tokenUsage: TokenUsage | undefined;
-  energyState: EnergyState | undefined;
+
   voiceState: VoiceState | undefined;
   heartbeatState: HeartbeatState | undefined;
   identityInfo: ActiveIdentityInfo | undefined;
@@ -618,7 +618,7 @@ export function App({ cwd, version }: AppProps) {
   const [inlinePending, setInlinePending] = useState<QueuedMessage[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | undefined>();
-  const [energyState, setEnergyState] = useState<EnergyState | undefined>();
+
   const [voiceState, setVoiceState] = useState<VoiceState | undefined>();
   const [heartbeatState, setHeartbeatState] = useState<HeartbeatState | undefined>();
   const [identityInfo, setIdentityInfo] = useState<ActiveIdentityInfo | undefined>();
@@ -1245,7 +1245,6 @@ export function App({ cwd, version }: AppProps) {
         toolCalls: toolCallsRef.current,
         toolResults: toolResultsRef.current,
         tokenUsage,
-        energyState,
         voiceState,
         heartbeatState,
         identityInfo,
@@ -1255,7 +1254,7 @@ export function App({ cwd, version }: AppProps) {
         lastWorkedFor,
       });
     }
-  }, [activeSessionId, messages, tokenUsage, energyState, voiceState, heartbeatState, identityInfo, processingStartTime, currentTurnTokens, error, lastWorkedFor]);
+  }, [activeSessionId, messages, tokenUsage, voiceState, heartbeatState, identityInfo, processingStartTime, currentTurnTokens, error, lastWorkedFor]);
 
   // Load session UI state
   const loadSessionState = useCallback((sessionId: string) => {
@@ -1272,7 +1271,6 @@ export function App({ cwd, version }: AppProps) {
       toolResultsRef.current = state.toolResults;
       setCurrentToolCall(undefined);
       setTokenUsage(state.tokenUsage);
-      setEnergyState(state.energyState);
       setVoiceState(state.voiceState);
       setHeartbeatState(state.heartbeatState);
       setIdentityInfo(state.identityInfo);
@@ -1294,7 +1292,6 @@ export function App({ cwd, version }: AppProps) {
       toolResultsRef.current = [];
       setCurrentToolCall(undefined);
       setTokenUsage(undefined);
-      setEnergyState(undefined);
       setVoiceState(undefined);
       setHeartbeatState(undefined);
       setIdentityInfo(undefined);
@@ -1363,7 +1360,6 @@ export function App({ cwd, version }: AppProps) {
     if (session) {
       setIsProcessing(session.isProcessing);
       isProcessingRef.current = session.isProcessing;
-      setEnergyState(session.client.getEnergyState() ?? undefined);
       setVoiceState(session.client.getVoiceState() ?? undefined);
       setHeartbeatState(session.client.getHeartbeatState?.() ?? undefined);
       setIdentityInfo(session.client.getIdentityInfo() ?? undefined);
@@ -1404,7 +1400,6 @@ export function App({ cwd, version }: AppProps) {
     loadSessionState(newSession.id);
     setIsProcessing(false);
     isProcessingRef.current = false;
-    setEnergyState(newSession.client.getEnergyState() ?? undefined);
     setVoiceState(newSession.client.getVoiceState() ?? undefined);
     setHeartbeatState(newSession.client.getHeartbeatState?.() ?? undefined);
     setIdentityInfo(newSession.client.getIdentityInfo() ?? undefined);
@@ -1436,7 +1431,6 @@ export function App({ cwd, version }: AppProps) {
       toolCalls: [],
       toolResults: [],
       tokenUsage: undefined,
-      energyState: undefined,
       voiceState: undefined,
       heartbeatState: undefined,
       identityInfo: undefined,
@@ -1526,7 +1520,6 @@ export function App({ cwd, version }: AppProps) {
     toolResultsRef.current = [];
     setCurrentToolCall(undefined);
     setTokenUsage(undefined);
-    setEnergyState(undefined);
     setVoiceState(undefined);
     setHeartbeatState(undefined);
     setIdentityInfo(undefined);
@@ -1736,7 +1729,6 @@ export function App({ cwd, version }: AppProps) {
       const activeSession = registry.getActiveSession();
       if (activeSession) {
         setTokenUsage(activeSession.client.getTokenUsage());
-        setEnergyState(activeSession.client.getEnergyState() ?? undefined);
         setVoiceState(activeSession.client.getVoiceState() ?? undefined);
         setHeartbeatState(activeSession.client.getHeartbeatState?.() ?? undefined);
         setIdentityInfo(activeSession.client.getIdentityInfo() ?? undefined);
@@ -2194,7 +2186,6 @@ export function App({ cwd, version }: AppProps) {
 
     await loadSessionMetadata(session);
 
-    setEnergyState(session.client.getEnergyState() ?? undefined);
     setVoiceState(session.client.getVoiceState() ?? undefined);
     setHeartbeatState(session.client.getHeartbeatState?.() ?? undefined);
     setIdentityInfo(session.client.getIdentityInfo() ?? undefined);
@@ -3303,7 +3294,6 @@ export function App({ cwd, version }: AppProps) {
           toolCalls: [],
           toolResults: [],
           tokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, maxContextTokens: tokenUsage?.maxContextTokens || 200000 },
-          energyState,
           voiceState,
           heartbeatState,
           identityInfo,
@@ -5562,7 +5552,6 @@ export function App({ cwd, version }: AppProps) {
         cwd={activeSession?.cwd || cwd}
         queueLength={activeQueue.length + inlineCount}
         tokenUsage={tokenUsage}
-        energyState={energyState}
         voiceState={voiceState}
         heartbeatState={heartbeatState}
         identityInfo={identityInfo}
