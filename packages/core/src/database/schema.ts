@@ -629,17 +629,6 @@ export const SCHEMA_STATEMENTS: string[] = [
   )`,
 
   // ============================================
-  // Energy (from energy/storage.ts, JSON -> SQL)
-  // ============================================
-  `CREATE TABLE IF NOT EXISTS energy_state (
-    id TEXT PRIMARY KEY DEFAULT 'default',
-    current_energy REAL NOT NULL,
-    max_energy REAL NOT NULL,
-    regen_rate REAL NOT NULL,
-    last_update TEXT NOT NULL
-  )`,
-
-  // ============================================
   // Capabilities (from capabilities/storage.ts, JSON -> SQL)
   // ============================================
   `CREATE TABLE IF NOT EXISTS capability_chains (

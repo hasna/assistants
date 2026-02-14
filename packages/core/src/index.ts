@@ -94,7 +94,6 @@ export {
   contextStatsTool,
   whoamiTool,
   identityGetTool,
-  energyStatusTool,
   resourceLimitsTool,
   createSelfAwarenessToolExecutors,
   registerSelfAwarenessTools,
@@ -248,8 +247,6 @@ export * from './context';
 // Heartbeat
 export * from './heartbeat';
 
-// Energy
-export * from './energy';
 
 // Budget
 export {
@@ -418,7 +415,7 @@ export type {
   ToolResult,
   Message,
   TokenUsage as SharedTokenUsage,
-  EnergyState,
+
   HookEvent,
   HookConfig,
   HookMatcher,

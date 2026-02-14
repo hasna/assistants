@@ -19,7 +19,7 @@ import { registerConfigTools } from '../tools/config';
 import { registerAssistantTools } from '../tools/assistant';
 import { registerIdentityTools } from '../tools/identity';
 import { registerModelTools } from '../tools/model';
-import { registerEnergyTools } from '../tools/energy';
+
 import { registerHeartbeatTools } from '../tools/heartbeat';
 import { registerContextEntryTools } from '../tools/context-entries';
 import { registerSecurityTools } from '../tools/security';
@@ -65,7 +65,7 @@ import {
   type Heartbeat,
   type HeartbeatConfig as HeartbeatRuntimeConfig,
 } from '../heartbeat';
-import { EnergyManager, EnergyStorage, applyPersonality, type EnergyEffects, type EnergyState } from '../energy';
+
 import { AssistantError, ErrorAggregator, ErrorCodes, type ErrorCode } from '../errors';
 import { configureLimits, enforceMessageLimit, getLimits } from '../validation/limits';
 import { validateToolCalls } from '../validation/llm-response';
@@ -158,9 +158,7 @@ export class AssistantLoop {
   private lastUserMessage: string | null = null;
   private lastToolName: string | null = null;
   private pendingToolCalls: Map<string, string> = new Map();
-  private energyManager: EnergyManager | null = null;
-  private energyEffects: EnergyEffects | null = null;
-  private lastEnergyLevel: EnergyEffects['level'] | null = null;
+
   private toolRegistry: ToolRegistry;
   private connectorBridge: ConnectorBridge;
   private skillLoader: SkillLoader;
@@ -672,8 +670,6 @@ export class AssistantLoop {
       getContextInfo: () => this.getContextInfo(),
       getAssistantManager: () => this.assistantManager,
       getIdentityManager: () => this.identityManager,
-      getEnergyManager: () => this.energyManager,
-      getEnergyState: () => this.getEnergyState(),
       getWalletManager: () => this.walletManager,
       sessionId: this.sessionId,
       model: this.config?.llm?.model,
@@ -715,18 +711,6 @@ export class AssistantLoop {
       getModel: () => this.getModel(),
       switchModel: async (modelId: string) => this.switchModel(modelId),
       getLLMConfig: () => this.config?.llm ?? null,
-    });
-
-    // Register energy tools
-    registerEnergyTools(this.toolRegistry, {
-      getEnergyManager: () => this.energyManager,
-      getEnergyState: () => this.getEnergyState(),
-      restEnergy: (amount?: number) => {
-        if (this.energyManager) {
-          this.energyManager.rest(amount);
-          this.refreshEnergyEffects();
-        }
-      },
     });
 
     // Register heartbeat tools
@@ -960,7 +944,7 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
 
     this.startHeartbeat();
     await this.startAssistantHeartbeat();
-    await this.startEnergySystem();
+
   }
 
   /**
@@ -1052,7 +1036,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
     const beforeCount = this.context.getMessages().length;
     this.lastUserMessage = userMessage;
     this.recordHeartbeatActivity('message');
-    this.consumeEnergy('message');
 
     try {
       if (source === 'user') {
@@ -1282,17 +1265,8 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
         await this.maybeSummarizeContext();
 
         const messages = this.context.getMessages();
-        this.consumeEnergy('llmCall');
-        if (this.contextConfig && this.contextManager) {
-          const contextTokens = this.contextManager.getState().totalTokens;
-          if (contextTokens > this.contextConfig.maxContextTokens * 0.8) {
-            this.consumeEnergy('longContext');
-          }
-        }
-        await this.applyEnergyDelay();
-
         const tools = this.filterAllowedTools(this.toolRegistry.getTools());
-        const systemPrompt = this.applyEnergyPersonality(this.buildSystemPrompt(messages));
+        const systemPrompt = this.buildSystemPrompt(messages);
 
         let responseText = '';
         let toolCalls: ToolCall[] = [];
@@ -1880,7 +1854,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
       }
 
       // Emit tool start
-      this.consumeEnergy('toolCall');
       this.recordHeartbeatActivity('tool');
       this.lastToolName = toolCall.name;
       this.pendingToolCalls.set(toolCall.id, toolCall.name);
@@ -2010,7 +1983,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
         }
         return result;
       },
-      getEnergyState: () => this.getEnergyState(),
       getAssistantManager: () => this.assistantManager,
       getIdentityManager: () => this.identityManager,
       getInboxManager: () => this.inboxManager,
@@ -2099,12 +2071,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
       },
       setAutoSend: (enabled: boolean) => {
         this.voiceManager?.setAutoSend(enabled);
-      },
-      restEnergy: (amount?: number) => {
-        if (this.energyManager) {
-          this.energyManager.rest(amount);
-          this.refreshEnergyEffects();
-        }
       },
       refreshConnectors: async () => {
         const connectors = await this.connectorBridge.refresh();
@@ -2382,7 +2348,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
     this.heartbeatManager?.stop();
     // Deregister from registry
     this.deregisterFromRegistry();
-    this.energyManager?.stop();
     this.voiceManager?.stopTalking();
     // Stop message watching
     this.messagesManager?.stopWatching();
@@ -2723,13 +2688,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
       config: this.contextConfig,
       state: this.contextManager.getState(),
     };
-  }
-
-  /**
-   * Get current energy state
-   */
-  getEnergyState(): EnergyState | null {
-    return this.energyManager ? this.energyManager.getState() : null;
   }
 
   /**
@@ -3091,43 +3049,6 @@ You are running in **autonomous mode**. You manage your own wakeup schedule.
 
   private recordHeartbeatActivity(type: 'message' | 'tool' | 'error'): void {
     this.heartbeatManager?.recordActivity(type);
-  }
-
-  private async startEnergySystem(): Promise<void> {
-    if (!this.config || this.config.energy?.enabled === false) return;
-    this.energyManager = new EnergyManager(this.config.energy, new EnergyStorage());
-    await this.energyManager.initialize();
-    this.refreshEnergyEffects();
-  }
-
-  private consumeEnergy(action: 'message' | 'toolCall' | 'llmCall' | 'longContext'): void {
-    if (!this.energyManager) return;
-    this.energyManager.consume(action);
-    this.refreshEnergyEffects();
-  }
-
-  private refreshEnergyEffects(): void {
-    if (!this.energyManager) return;
-    const effects = this.energyManager.getEffects();
-    this.energyEffects = effects;
-    if (this.lastEnergyLevel !== effects.level) {
-      this.lastEnergyLevel = effects.level;
-      if (effects.message) {
-        this.emit({ type: 'text', content: `\n${effects.message}\n` });
-      }
-    }
-  }
-
-  private async applyEnergyDelay(): Promise<void> {
-    const delay = this.energyEffects?.processingDelayMs ?? 0;
-    if (delay <= 0) return;
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-
-  private applyEnergyPersonality(systemPrompt: string | undefined): string | undefined {
-    if (!systemPrompt) return systemPrompt;
-    if (!this.energyEffects) return systemPrompt;
-    return applyPersonality(systemPrompt, this.energyEffects);
   }
 
   /**

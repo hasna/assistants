@@ -174,7 +174,7 @@ export class BuiltinCommands {
     loader.register(this.projectsCommand());
     loader.register(this.plansCommand());
     loader.register(this.summarizeCommand());
-    loader.register(this.restCommand());
+
     loader.register(this.voiceCommand());
     loader.register(this.talkCommand());
     loader.register(this.assistantCommand());
@@ -5605,40 +5605,6 @@ Created: ${new Date(job.createdAt).toISOString()}
   }
 
   /**
-   * /rest - Recharge assistant energy
-   */
-  private restCommand(): Command {
-    return {
-      name: 'rest',
-      description: 'Recharge assistant energy (optional: amount, e.g. /rest 5000)',
-      builtin: true,
-      selfHandled: true,
-      content: '',
-      handler: async (args, context) => {
-        if (!context.restEnergy) {
-          context.emit('text', '\nEnergy system is not available.\n');
-          context.emit('done');
-          return { handled: true };
-        }
-
-        const parsed = parseInt(args.trim(), 10);
-        const amount = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-        context.restEnergy(amount);
-
-        const state = context.getEnergyState?.();
-        if (state) {
-          const percent = Math.round((state.current / Math.max(1, state.max)) * 100);
-          context.emit('text', `\nEnergy restored. Current level: ${percent}% (${state.current}/${state.max}).\n`);
-        } else {
-          context.emit('text', '\nEnergy restored.\n');
-        }
-        context.emit('done');
-        return { handled: true };
-      },
-    };
-  }
-
-  /**
    * /skills - Interactive skills panel (merged with /skill create)
    */
   private skillsCommand(loader: CommandLoader): Command {
@@ -5892,7 +5858,7 @@ Created: ${new Date(job.createdAt).toISOString()}
   private statusCommand(): Command {
     return {
       name: 'status',
-      description: 'Show session overview: status, energy, identity, tokens, and runtime info',
+      description: 'Show session overview: status, identity, tokens, and runtime info',
       builtin: true,
       selfHandled: true,
       content: '',
@@ -5916,15 +5882,6 @@ Created: ${new Date(job.createdAt).toISOString()}
             message += ` · ${identity.name}`;
           }
           message += '\n';
-        }
-
-        // Energy state
-        const energyState = context.getEnergyState?.();
-        if (energyState) {
-          const energyPercent = Math.round((energyState.current / Math.max(1, energyState.max)) * 100);
-          const energyBar = '█'.repeat(Math.round(energyPercent / 10)) + '░'.repeat(10 - Math.round(energyPercent / 10));
-          const energyEmoji = energyPercent > 70 ? '⚡' : energyPercent > 30 ? '🔋' : '🪫';
-          message += `**Energy:** ${energyEmoji} [${energyBar}] ${energyPercent}% (${energyState.current}/${energyState.max})\n`;
         }
 
         // Voice state
@@ -6020,7 +5977,7 @@ Format the summary as a brief bullet-point list. This summary will replace the c
   private configCommand(): Command {
     return {
       name: 'config',
-      description: 'View and edit configuration interactively (model, context, energy, etc.)',
+      description: 'View and edit configuration interactively (model, context, etc.)',
       builtin: true,
       selfHandled: true,
       content: '',

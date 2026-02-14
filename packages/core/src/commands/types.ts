@@ -1,4 +1,4 @@
-import type { Tool, TokenUsage, EnergyState, VoiceState, HeartbeatState, HeartbeatConfig, HookConfig, BudgetConfig, GuardrailsConfigShared } from '@hasna/assistants-shared';
+import type { Tool, TokenUsage, VoiceState, HeartbeatState, HeartbeatConfig, HookConfig, BudgetConfig, GuardrailsConfigShared } from '@hasna/assistants-shared';
 import type { BudgetScope, BudgetSummary } from '../budget/types';
 import type { GuardrailsConfig, GuardrailsPolicy, PolicyAction } from '../guardrails/types';
 import type { RecordOptions } from '../voice/recorder';
@@ -84,7 +84,7 @@ export interface CommandContext {
   getModel?: () => string | undefined;
   getStorageDir?: () => string;
   getWorkspaceId?: () => string | null;
-  getEnergyState?: () => EnergyState | null;
+
   getVoiceState?: () => VoiceState | null;
   getHeartbeatState?: () => HeartbeatState | null;
   getHeartbeatConfig?: () => HeartbeatConfig | null;
@@ -129,7 +129,7 @@ export interface CommandContext {
   getActiveProjectId?: () => string | null;
   setActiveProjectId?: (projectId: string | null) => void;
   setProjectContext?: (content: string | null) => void;
-  restEnergy?: (amount?: number) => void;
+
   refreshConnectors?: () => Promise<{ count: number; names: string[] }>;
   budgetConfig?: BudgetConfig;
   getBudgetSummary?: () => BudgetSummary | null;

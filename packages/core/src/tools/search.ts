@@ -280,7 +280,7 @@ function inferToolMetadata(tool: Tool): ToolMetadata {
     category = 'interaction';
   } else if (name === 'display_image') {
     category = 'media';
-  } else if (['context_get', 'context_stats', 'whoami', 'identity_get', 'energy_status', 'resource_limits'].includes(name)) {
+  } else if (['context_get', 'context_stats', 'whoami', 'identity_get', 'resource_limits'].includes(name)) {
     category = 'self-awareness';
   } else if (name.startsWith('connector') || name === 'connectors_list' || name === 'connectors_search') {
     category = 'connectors';

@@ -234,10 +234,6 @@ export class CodexAgentLoop {
     return null;
   }
 
-  getEnergyState(): null {
-    return null;
-  }
-
   getVoiceState(): null {
     return null;
   }

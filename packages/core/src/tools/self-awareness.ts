@@ -6,10 +6,10 @@
  * adjust behavior based on remaining resources, and identify themselves.
  */
 
-import type { Tool, EnergyState } from '@hasna/assistants-shared';
+import type { Tool } from '@hasna/assistants-shared';
 import type { ToolExecutor, ToolRegistry } from './registry';
 import type { ContextManager, ContextInfo, ContextConfig, ContextState } from '../context';
-import type { EnergyManager, EnergyEffects, EnergyLevel } from '../energy';
+
 import type { AssistantManager, IdentityManager, Assistant, Identity } from '../identity';
 import type { WalletManager } from '../wallet';
 import type { StatsTracker, SessionStats, ToolStats } from '../agent/stats';
@@ -23,8 +23,7 @@ export interface SelfAwarenessContext {
   getContextInfo?: () => ContextInfo | null;
   getAssistantManager?: () => AssistantManager | null;
   getIdentityManager?: () => IdentityManager | null;
-  getEnergyManager?: () => EnergyManager | null;
-  getEnergyState?: () => EnergyState | null;
+
   getWalletManager?: () => WalletManager | null;
   getStatsTracker?: () => StatsTracker | null;
   // Session state getters
@@ -96,21 +95,10 @@ export const identityGetTool: Tool = {
   },
 };
 
-export const energyStatusTool: Tool = {
-  name: 'energy_status',
-  description:
-    'Get current energy state, level, and any effects (like response modifications). Check before expensive operations.',
-  parameters: {
-    type: 'object',
-    properties: {},
-    required: [],
-  },
-};
-
 export const resourceLimitsTool: Tool = {
   name: 'resource_limits',
   description:
-    'Get current resource limits including context window, energy thresholds, and wallet rate limits. Use for planning multi-step operations.',
+    'Get current resource limits including context window and wallet rate limits. Use for planning multi-step operations.',
   parameters: {
     type: 'object',
     properties: {},
@@ -241,7 +229,6 @@ export const selfAwarenessTools: Tool[] = [
   contextStatsTool,
   whoamiTool,
   identityGetTool,
-  energyStatusTool,
   resourceLimitsTool,
   sessionStatsTool,
   toolStatsTool,
@@ -345,19 +332,6 @@ interface IdentityGetResponse {
   };
 }
 
-interface EnergyStatusResponse {
-  current: number;
-  max: number;
-  percentage: number;
-  level: EnergyLevel;
-  regenRate: number;
-  effects: {
-    promptModifier: string | null;
-    responseLengthFactor: number;
-    processingDelayMs: number;
-  };
-}
-
 interface ResourceLimitsResponse {
   context: {
     maxTokens: number;
@@ -365,18 +339,6 @@ interface ResourceLimitsResponse {
     triggerRatio: number;
     maxMessages: number;
     keepRecentMessages: number;
-  };
-  energy: {
-    enabled: boolean;
-    maxEnergy: number;
-    lowThreshold: number;
-    criticalThreshold: number;
-    costs: {
-      message: number;
-      toolCall: number;
-      llmCall: number;
-      longContext: number;
-    };
   };
   wallet: {
     configured: boolean;
@@ -555,47 +517,6 @@ export function createSelfAwarenessToolExecutors(
       return JSON.stringify(response, null, 2);
     },
 
-    energy_status: async (): Promise<string> => {
-      const energyManager = context.getEnergyManager?.();
-      const energyState = context.getEnergyState?.();
-
-      if (!energyManager || !energyState) {
-        return JSON.stringify({
-          error: 'Energy system not available',
-          current: 0,
-          max: 0,
-          percentage: 0,
-          level: 'energetic',
-          regenRate: 0,
-          effects: {
-            promptModifier: null,
-            responseLengthFactor: 1.0,
-            processingDelayMs: 0,
-          },
-        });
-      }
-
-      const effects = energyManager.getEffects();
-      const percentage = energyState.max > 0
-        ? Math.round((energyState.current / energyState.max) * 100)
-        : 0;
-
-      const response: EnergyStatusResponse = {
-        current: energyState.current,
-        max: energyState.max,
-        percentage,
-        level: effects.level,
-        regenRate: energyState.regenRate,
-        effects: {
-          promptModifier: effects.promptModifier ?? null,
-          responseLengthFactor: effects.responseLengthFactor,
-          processingDelayMs: effects.processingDelayMs,
-        },
-      };
-
-      return JSON.stringify(response, null, 2);
-    },
-
     resource_limits: async (): Promise<string> => {
       const contextInfo = context.getContextInfo?.();
       const walletManager = context.getWalletManager?.();
@@ -609,14 +530,6 @@ export function createSelfAwarenessToolExecutors(
         keepRecentMessages: 10,
       };
 
-      // Default energy config values
-      const defaultEnergyCosts = {
-        message: 200,
-        toolCall: 500,
-        llmCall: 300,
-        longContext: 1000,
-      };
-
       const response: ResourceLimitsResponse = {
         context: {
           maxTokens: contextConfig.maxContextTokens,
@@ -624,13 +537,6 @@ export function createSelfAwarenessToolExecutors(
           triggerRatio: contextConfig.summaryTriggerRatio,
           maxMessages: contextConfig.maxMessages,
           keepRecentMessages: contextConfig.keepRecentMessages,
-        },
-        energy: {
-          enabled: true,
-          maxEnergy: 10000,
-          lowThreshold: 3000,
-          criticalThreshold: 1000,
-          costs: defaultEnergyCosts,
         },
         wallet: {
           configured: walletManager?.isConfigured() ?? false,

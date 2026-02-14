@@ -128,19 +128,6 @@ const DEFAULT_CONFIG: AssistantsConfig = {
       },
     },
   },
-  energy: {
-    enabled: true,
-    regenRate: 500,
-    lowEnergyThreshold: 3000,
-    criticalThreshold: 1000,
-    maxEnergy: 10000,
-    costs: {
-      message: 200,
-      toolCall: 500,
-      llmCall: 300,
-      longContext: 1000,
-    },
-  },
   validation: {
     mode: 'strict',
     maxUserMessageLength: 100_000,

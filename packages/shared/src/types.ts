@@ -495,7 +495,7 @@ export interface AssistantsConfig {
   scheduler?: SchedulerConfig;
   heartbeat?: HeartbeatConfig;
   context?: ContextConfig;
-  energy?: EnergyConfig;
+
   validation?: ValidationConfig;
   inbox?: InboxConfig;
   wallet?: WalletConfig;
@@ -995,28 +995,6 @@ export interface ContextInjectionConfigShared {
   };
 }
 
-export interface EnergyCosts {
-  message: number;
-  toolCall: number;
-  llmCall: number;
-  longContext: number;
-}
-
-export interface EnergyConfig {
-  enabled?: boolean;
-  costs?: Partial<EnergyCosts>;
-  regenRate?: number;
-  lowEnergyThreshold?: number;
-  criticalThreshold?: number;
-  maxEnergy?: number;
-}
-
-export interface EnergyState {
-  current: number;
-  max: number;
-  regenRate: number;
-  lastUpdate: string;
-}
 
 export interface ValidationConfig {
   mode?: 'strict' | 'lenient';
@@ -1085,7 +1063,7 @@ export interface AssistantClient {
   onError(callback: (error: Error) => void): void | (() => void);
   getTools(): Promise<Tool[]>;
   getSkills(): Promise<Skill[]>;
-  getEnergyState(): EnergyState | null;
+
   getVoiceState(): VoiceState | null;
   getIdentityInfo(): ActiveIdentityInfo | null;
   getModel(): string | null;

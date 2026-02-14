@@ -1,4 +1,4 @@
-import type { AssistantClient, StreamChunk, Tool, Skill, Message, TokenUsage, EnergyState, VoiceState, ActiveIdentityInfo, HeartbeatState, AssistantBackend } from '@hasna/assistants-shared';
+import type { AssistantClient, StreamChunk, Tool, Skill, Message, TokenUsage, VoiceState, ActiveIdentityInfo, HeartbeatState, AssistantBackend } from '@hasna/assistants-shared';
 import { generateId } from '@hasna/assistants-shared';
 import { AssistantLoop } from './agent/loop';
 import { createAgentLoop, type AgentLoop } from './agent/factory';
@@ -351,16 +351,6 @@ export class EmbeddedClient implements AssistantClient {
    */
   getTokenUsage(): TokenUsage {
     return this.assistantLoop.getTokenUsage();
-  }
-
-  /**
-   * Get current energy state
-   */
-  getEnergyState(): EnergyState | null {
-    if (typeof (this.assistantLoop as any).getEnergyState === 'function') {
-      return (this.assistantLoop as any).getEnergyState();
-    }
-    return null;
   }
 
   /**
