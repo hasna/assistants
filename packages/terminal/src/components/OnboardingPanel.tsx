@@ -49,18 +49,7 @@ const POPULAR_CONNECTORS: Record<string, { desc: string; install: string }> = {
   calendar: { desc: 'Google Calendar', install: 'bun add -g connect-calendar' },
 };
 
-const LOGO_LINES = [
-  '  █████  ███████ ███████ ██ ███████ ████████  █████  ███    ██ ████████ ███████',
-  ' ██   ██ ██      ██      ██ ██         ██    ██   ██ ████   ██    ██    ██     ',
-  ' ███████ ███████ ███████ ██ ███████    ██    ███████ ██ ██  ██    ██    ███████',
-  ' ██   ██      ██      ██ ██      ██    ██    ██   ██ ██  ██ ██    ██         ██',
-  ' ██   ██ ███████ ███████ ██ ███████    ██    ██   ██ ██   ████    ██    ███████',
-];
-
-// Gradient colors applied per line (top to bottom)
-const GRADIENT_COLORS = ['#7dd3fc', '#38bdf8', '#0ea5e9', '#0284c7', '#0369a1'] as const;
-
-const COMPACT_LOGO = 'ASSISTANTS';
+const COMPACT_LOGO = 'Hasna Assistants';
 
 const INTRO_FEATURES = [
   'Chat with AI models - Claude, GPT, and more',
@@ -198,7 +187,7 @@ export function OnboardingPanel({
   const [connectorKeyIndex, setConnectorKeyIndex] = useState(0);
   const [connectorKeyValue, setConnectorKeyValue] = useState('');
   const [introRevealCount, setIntroRevealCount] = useState(0);
-  const [isCompact, setIsCompact] = useState(false);
+  const [isCompact] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const submitGuardRef = useRef(false);
 
@@ -231,11 +220,7 @@ export function OnboardingPanel({
     currentStep === 'welcome'
   );
 
-  // Check terminal width for compact mode
-  useEffect(() => {
-    const cols = process.stdout.columns || 80;
-    setIsCompact(cols < 60);
-  }, []);
+  // isCompact reserved for future use
 
   // Animate intro bullets
   useEffect(() => {
@@ -509,17 +494,8 @@ export function OnboardingPanel({
   if (currentStep === 'welcome') {
     return (
       <Box flexDirection="column" paddingX={1}>
-        <Box marginTop={1} marginBottom={0} flexDirection="column">
-          {isCompact ? (
-            <Text bold color={logoColor}>{COMPACT_LOGO}</Text>
-          ) : (
-            LOGO_LINES.map((line, i) => (
-              <Text key={i} color={GRADIENT_COLORS[i] || GRADIENT_COLORS[GRADIENT_COLORS.length - 1]}>{line}</Text>
-            ))
-          )}
-        </Box>
-        <Box marginBottom={1}>
-          <Text dimColor>  by </Text><Text color="#94a3b8" bold>hasna</Text>
+        <Box marginTop={1} marginBottom={1}>
+          <Text bold color={logoColor}>{COMPACT_LOGO}</Text>
         </Box>
         <Box marginBottom={1}>
           <Text color="cyan">&gt; </Text>
