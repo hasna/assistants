@@ -37,6 +37,9 @@ Thumbs.db
 .connect/
 .env
 
+# SQLite data
+packages/web/data/
+
 # Runtime-generated assistants data
 **/.assistants-data/
 

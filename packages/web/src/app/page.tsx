@@ -48,6 +48,23 @@ const features = [
 export default function LandingPage() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) setSubscribed(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -177,7 +194,7 @@ export default function LandingPage() {
           </p>
         ) : (
           <form
-            onSubmit={(e) => { e.preventDefault(); if (email) setSubscribed(true); }}
+            onSubmit={handleSubscribe}
             className="mx-auto mt-8 flex max-w-xs gap-2"
           >
             <Input
@@ -186,8 +203,11 @@ export default function LandingPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={submitting}
             />
-            <Button type="submit">Subscribe</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Subscribe'}
+            </Button>
           </form>
         )}
       </section>
