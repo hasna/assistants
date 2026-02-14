@@ -2,7 +2,7 @@ import type { VoiceConfig } from '@hasna/assistants-shared';
 import type { STTProvider, TTSProvider, VoiceState } from './types';
 import type { RecordOptions } from './recorder';
 import { WhisperSTT, ElevenLabsSTT, SystemSTT } from './stt';
-import { ElevenLabsTTS, SystemTTS } from './tts';
+import { ElevenLabsTTS, OpenAITTS, SystemTTS } from './tts';
 import { AudioPlayer, type PlayOptions } from './player';
 import { AudioRecorder } from './recorder';
 
@@ -92,7 +92,7 @@ export class VoiceManager {
     this.isSpeaking = true;
     try {
       if (this.tts.stream && this.player.playStream) {
-        const format = this.config.tts.provider === 'elevenlabs' ? 'mp3' : 'wav';
+        const format = (this.config.tts.provider === 'elevenlabs' || this.config.tts.provider === 'openai') ? 'mp3' : 'wav';
         await this.player.playStream(this.tts.stream(trimmed), { format });
       } else {
         const result = await this.tts.synthesize(trimmed);
@@ -327,7 +327,7 @@ export class VoiceManager {
     this.isSpeaking = true;
     try {
       if (this.tts.stream && this.player.playStream) {
-        const format = this.config.tts.provider === 'elevenlabs' ? 'mp3' : 'wav';
+        const format = (this.config.tts.provider === 'elevenlabs' || this.config.tts.provider === 'openai') ? 'mp3' : 'wav';
         await this.player.playStream(this.tts.stream(text), { format });
       } else {
         const ttsResult = await this.tts.synthesize(text);
@@ -397,6 +397,14 @@ export class VoiceManager {
         stability: this.config.tts.stability,
         similarityBoost: this.config.tts.similarityBoost,
         speed: this.config.tts.speed,
+      });
+    }
+    if (this.config.tts.provider === 'openai') {
+      return new OpenAITTS({
+        voiceId: this.config.tts.voiceId,
+        model: this.config.tts.model,
+        speed: this.config.tts.speed,
+        instructions: this.config.tts.instructions,
       });
     }
     return new ElevenLabsTTS({

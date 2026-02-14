@@ -123,6 +123,116 @@ export class ElevenLabsTTS {
   }
 }
 
+/**
+ * Text-to-Speech using OpenAI Audio Speech API (gpt-4o-mini-tts / tts-1 / tts-1-hd)
+ */
+export class OpenAITTS {
+  private apiKey: string;
+  private model: string;
+  private voice: string;
+  private speed?: number;
+  private instructions?: string;
+
+  constructor(options: TTSOptions & { instructions?: string } = {}) {
+    this.apiKey = options.apiKey
+      || process.env.OPENAI_API_KEY
+      || loadApiKeyFromSecrets('OPENAI_API_KEY')
+      || '';
+    this.model = options.model || 'gpt-4o-mini-tts';
+    this.voice = options.voiceId || 'nova';
+    this.speed = options.speed;
+    this.instructions = (options as { instructions?: string }).instructions;
+  }
+
+  /**
+   * Convert text to speech
+   */
+  async synthesize(text: string): Promise<TTSResult> {
+    if (!this.apiKey) {
+      throw new Error('Missing OPENAI_API_KEY for OpenAI TTS. Set it in env or ~/.secrets.');
+    }
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      input: text,
+      voice: this.voice,
+      response_format: 'mp3',
+    };
+    if (this.speed) {
+      body.speed = Math.max(0.25, Math.min(4.0, this.speed));
+    }
+    if (this.instructions && this.model === 'gpt-4o-mini-tts') {
+      body.instructions = this.instructions;
+    }
+
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI TTS failed (${response.status}): ${errorText || response.statusText}`);
+    }
+
+    const audio = await response.arrayBuffer();
+    return { audio, format: 'mp3' };
+  }
+
+  /**
+   * Stream text to speech (for real-time playback)
+   */
+  async *stream(text: string): AsyncGenerator<ArrayBuffer> {
+    if (!this.apiKey) {
+      throw new Error('Missing OPENAI_API_KEY for OpenAI TTS. Set it in env or ~/.secrets.');
+    }
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      input: text,
+      voice: this.voice,
+      response_format: 'mp3',
+    };
+    if (this.speed) {
+      body.speed = Math.max(0.25, Math.min(4.0, this.speed));
+    }
+    if (this.instructions && this.model === 'gpt-4o-mini-tts') {
+      body.instructions = this.instructions;
+    }
+
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI TTS stream failed (${response.status}): ${errorText || response.statusText}`);
+    }
+
+    if (!response.body) {
+      return;
+    }
+
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        yield value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+      }
+    }
+  }
+}
+
 export class SystemTTS {
   private voiceId?: string;
   private speed?: number;

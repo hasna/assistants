@@ -297,6 +297,17 @@ export class AssistantLoop {
   }
 
   /**
+   * Get the active assistant's identity info for subsystem initialization.
+   */
+  private getAssistantIdentity(): { id: string; name: string } {
+    const assistant = this.assistantManager?.getActive();
+    return {
+      id: assistant?.id || this.sessionId,
+      name: assistant?.name || 'assistant',
+    };
+  }
+
+  /**
    * Initialize the assistant (parallelized for fast startup)
    */
   async initialize(): Promise<void> {
@@ -331,8 +342,20 @@ export class AssistantLoop {
     this.contextConfig = this.buildContextConfig(this.config);
     this.context.setMaxMessages(this.contextConfig.maxMessages);
     this.builtinCommands.updateTokenUsage({ maxContextTokens: this.contextConfig.maxContextTokens });
-    if (this.config.voice) {
-      this.voiceManager = new VoiceManager(this.config.voice);
+    // Always create a VoiceManager so /talk works.
+    // If voice config is provided, use it. Otherwise, fall back to sensible defaults:
+    //   STT: whisper (uses OPENAI_API_KEY), TTS: openai (uses OPENAI_API_KEY),
+    //   or system TTS if no API key is available.
+    {
+      const voiceConfig = this.config.voice ?? {
+        enabled: false,
+        stt: { provider: 'whisper' as const },
+        tts: {
+          provider: (process.env.OPENAI_API_KEY ? 'openai' : 'system') as 'openai' | 'system',
+          voiceId: process.env.OPENAI_API_KEY ? 'nova' : undefined,
+        },
+      };
+      this.voiceManager = new VoiceManager(voiceConfig);
     }
     // Initialize budget tracker from config if not already set via options
     if (!this.budgetTracker && this.config.budget) {
@@ -465,9 +488,7 @@ export class AssistantLoop {
 
     // Initialize inbox if enabled
     if (this.config?.inbox?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
-      const assistantName = assistant?.name || 'assistant';
+      const { id: assistantId, name: assistantName } = this.getAssistantIdentity();
       this.inboxManager = createInboxManager(
         assistantId,
         assistantName,
@@ -479,25 +500,21 @@ export class AssistantLoop {
 
     // Initialize wallet if enabled
     if (this.config?.wallet?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
+      const { id: assistantId } = this.getAssistantIdentity();
       this.walletManager = createWalletManager(assistantId, this.config.wallet, this.storageDir);
       registerWalletTools(this.toolRegistry, () => this.walletManager);
     }
 
     // Initialize secrets if enabled
     if (this.config?.secrets?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
+      const { id: assistantId } = this.getAssistantIdentity();
       this.secretsManager = createSecretsManager(assistantId, this.config.secrets, this.storageDir);
       registerSecretsTools(this.toolRegistry, () => this.secretsManager);
     }
 
     // Initialize messages if enabled
     if (this.config?.messages?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
-      const assistantName = assistant?.name || 'assistant';
+      const { id: assistantId, name: assistantName } = this.getAssistantIdentity();
       this.messagesManager = createMessagesManager(assistantId, assistantName, this.config.messages);
       await this.messagesManager.initialize();
       registerMessagesTools(this.toolRegistry, () => this.messagesManager);
@@ -517,8 +534,7 @@ export class AssistantLoop {
 
     // Initialize webhooks if enabled
     if (this.config?.webhooks?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
+      const { id: assistantId } = this.getAssistantIdentity();
       this.webhooksManager = createWebhooksManager(assistantId, this.config.webhooks);
       await this.webhooksManager.initialize();
       registerWebhookTools(this.toolRegistry, () => this.webhooksManager);
@@ -536,9 +552,7 @@ export class AssistantLoop {
 
     // Initialize channels if enabled
     if (this.config?.channels?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
-      const assistantName = assistant?.name || 'assistant';
+      const { id: assistantId, name: assistantName } = this.getAssistantIdentity();
       this.channelsManager = createChannelsManager(
         assistantId,
         assistantName,
@@ -559,9 +573,7 @@ export class AssistantLoop {
 
     // Initialize telephony if enabled
     if (this.config?.telephony?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
-      const assistantName = assistant?.name || 'assistant';
+      const { id: assistantId, name: assistantName } = this.getAssistantIdentity();
       this.telephonyManager = createTelephonyManager(assistantId, assistantName, this.config.telephony);
       registerTelephonyTools(this.toolRegistry, () => this.telephonyManager, () => this.contactsManager);
 
@@ -578,9 +590,7 @@ export class AssistantLoop {
 
     // Initialize orders if enabled
     if (this.config?.orders?.enabled) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantId = assistant?.id || this.sessionId;
-      const assistantName = assistant?.name || 'assistant';
+      const { id: assistantId, name: assistantName } = this.getAssistantIdentity();
       this.ordersManager = createOrdersManager(assistantId, assistantName, this.config.orders);
       registerOrderTools(this.toolRegistry, () => this.ordersManager);
     }
@@ -596,8 +606,7 @@ export class AssistantLoop {
     // Initialize memory system if enabled
     const memoryConfig = this.config?.memory;
     if (memoryConfig?.enabled !== false) {
-      const assistant = this.assistantManager?.getActive();
-      const assistantScopeId = assistant?.id || this.sessionId;
+      const { id: assistantScopeId } = this.getAssistantIdentity();
       const scopePrefix = this.workspaceId ? `${this.workspaceId}:` : '';
       const scopedScopeId = `${scopePrefix}${assistantScopeId}`;
       this.memoryManager = new GlobalMemoryManager({

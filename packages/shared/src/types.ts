@@ -760,12 +760,14 @@ export interface STTConfig {
 }
 
 export interface TTSConfig {
-  provider: 'elevenlabs' | 'system';
+  provider: 'openai' | 'elevenlabs' | 'system';
   voiceId?: string;
   model?: string;
   stability?: number;
   similarityBoost?: number;
   speed?: number;
+  /** Speaking style instructions (OpenAI gpt-4o-mini-tts only) */
+  instructions?: string;
 }
 
 export interface WakeConfig {
