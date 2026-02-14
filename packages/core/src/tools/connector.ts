@@ -257,7 +257,11 @@ export class ConnectorBridge {
       if (cached === null) {
         continue;
       }
-      const connector = this.createMinimalConnector(name, `connect-${name}`);
+      // Resolve CLI: prefer .connectors/ local path, fall back to connect-<name>
+      const cwdForResolve = this.cwd || process.cwd();
+      const localBin = join(cwdForResolve, '.connectors', `connect-${name}`, 'bin', 'index.js');
+      const cli = existsSync(localBin) ? localBin : `connect-${name}`;
+      const connector = this.createMinimalConnector(name, cli);
       ConnectorBridge.cache.set(name, connector);
       this.connectors.set(connector.name, connector);
       connectors.push(connector);

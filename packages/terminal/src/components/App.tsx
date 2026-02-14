@@ -1325,6 +1325,9 @@ export function App({ cwd, version }: AppProps) {
     if (typeof command !== 'string') return false;
     const trimmed = command.trim();
     const lower = trimmed.toLowerCase();
+    // Detect `connectors install <name>` or `connectors add <name>`
+    if (/^\s*connectors\s+(install|add)\b/.test(lower)) return true;
+    // Detect `bun add -g connect-*` or `bun add -g @hasna/*`
     if (!lower.startsWith('bun ')) return false;
     if (!/\bbun\s+(add|install|i)\b/.test(lower)) return false;
     if (!/\s(-g|--global)\b/.test(lower)) return false;

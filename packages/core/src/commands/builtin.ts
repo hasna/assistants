@@ -8022,8 +8022,9 @@ Please summarize the last interaction and suggest 2-3 next steps.
 
         if (context.connectors.length === 0) {
           message += 'No connectors found.\n\n';
-          message += 'Connectors are auto-discovered from installed `connect-*` CLIs on your PATH.\n';
-          message += 'Install a connector with:\n';
+          message += 'Install connectors using the `connectors` CLI:\n';
+          message += '  `connectors install <name>` (e.g. `connectors install gmail`)\n\n';
+          message += 'Or install standalone `connect-*` CLIs:\n';
           message += '  `bun add -g connect-<name>`\n\n';
           message += 'Then run `/connectors` again to verify it is detected.\n';
         } else {

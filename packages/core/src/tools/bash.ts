@@ -131,6 +131,7 @@ export class BashTool {
     // Connectors
     'connect-',
     'connect_',
+    'connectors',
     // Node/bun info
     'node --version', 'bun --version', 'npm --version', 'pnpm --version',
     // JSON processing (read-only)
@@ -407,7 +408,7 @@ export class BashTool {
 
     const baseCommand = command.replace(/\s*2>&1\s*/g, ' ').trim();
     const baseTrimmed = baseCommand.toLowerCase();
-    const allowConnectorNewlines = baseTrimmed.startsWith('connect-') || baseTrimmed.startsWith('connect_');
+    const allowConnectorNewlines = baseTrimmed.startsWith('connect-') || baseTrimmed.startsWith('connect_') || baseTrimmed.startsWith('connectors');
     const commandForExec = allowConnectorNewlines
       ? normalizeNewlinesOutsideQuotes(baseCommand).trim()
       : baseCommand;
