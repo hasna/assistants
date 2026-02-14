@@ -164,7 +164,7 @@ export function ModelPanel({
     setIsSwitching(true);
     void onSelectModel(row.model.id)
       .then(() => {
-        setStatus({ type: 'success', text: `Switched to ${row.model.name}.` });
+        onCancel();
       })
       .catch((err) => {
         const message = err instanceof Error ? err.message : String(err);

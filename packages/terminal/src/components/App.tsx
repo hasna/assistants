@@ -38,7 +38,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { JobsPanel } from './JobsPanel';
 import { DocsPanel } from './DocsPanel';
 import { OnboardingPanel, type OnboardingResult } from './OnboardingPanel';
-import { getProviderInfo, LLM_PROVIDERS, type LLMProvider } from '@hasna/assistants-shared';
+import { getProviderInfo, getModelDisplayName, LLM_PROVIDERS, type LLMProvider } from '@hasna/assistants-shared';
 import { GuardrailsPanel } from './GuardrailsPanel';
 import { BudgetsPanel } from './BudgetsPanel';
 import { ModelPanel } from './ModelPanel';
@@ -4499,11 +4499,22 @@ export function App({ cwd, version }: AppProps) {
       const loop = activeSession.client.getAssistantLoop?.();
       if (loop && typeof loop.switchModel === 'function') {
         await loop.switchModel(modelId);
-        return;
+      } else {
+        // Fallback for contexts without direct loop access.
+        await activeSession.client.send(`/model ${modelId}`);
       }
 
-      // Fallback for contexts without direct loop access.
-      await activeSession.client.send(`/model ${modelId}`);
+      const displayName = getModelDisplayName(modelId);
+      setShowModelPanel(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: 'assistant',
+          content: `Switched model to **${displayName}** (\`${modelId}\`).`,
+          timestamp: now(),
+        },
+      ]);
     };
 
     return (
