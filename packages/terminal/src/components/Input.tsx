@@ -578,8 +578,14 @@ export const Input = React.forwardRef<InputHandle, InputProps>(function Input({
     }
 
     if (!isAskingUser) {
-      // Tab: autocomplete selected item
+      // Tab: queue message while processing, or autocomplete when idle
       if (key.tab) {
+        // When agent is processing, Tab always queues (takes priority over autocomplete)
+        if (isProcessing && value.trim()) {
+          onSubmit(value, 'queue');
+          setValueAndCursor('');
+          return;
+        }
         if (autocompleteItems.length > 0) {
           const selected = autocompleteItems[selectedIndex] || autocompleteItems[0];
           if (autocompleteMode === 'file') {
@@ -594,11 +600,6 @@ export const Input = React.forwardRef<InputHandle, InputProps>(function Input({
               : `${selected.name} `;
             setValueAndCursor(nextValue);
           }
-          return;
-        }
-        if (isProcessing && value.trim()) {
-          onSubmit(value, 'queue');
-          setValueAndCursor('');
           return;
         }
       }

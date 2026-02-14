@@ -614,6 +614,7 @@ export function App({ cwd, version }: AppProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([]);
+  const messageQueueRef = useRef<QueuedMessage[]>([]);
   const [inlinePending, setInlinePending] = useState<QueuedMessage[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | undefined>();
@@ -2435,11 +2436,21 @@ export function App({ cwd, version }: AppProps) {
   // Process queued messages
   const processQueue = useCallback(async () => {
     const activeSession = registryRef.current.getActiveSession();
-    if (!activeSession || !activeSessionId) return;
+    if (!activeSessionId || !activeSession) return;
 
-    const { next: nextMessage, remaining } = takeNextQueuedMessage(messageQueue, activeSessionId);
+    // Read from ref to avoid stale closure issues
+    const currentQueue = messageQueueRef.current;
+    const { next: nextMessage } = takeNextQueuedMessage(currentQueue, activeSessionId);
     if (!nextMessage) return;
-    setMessageQueue(remaining);
+
+    // Use functional update to safely remove only the dispatched message
+    setMessageQueue((prev) => prev.filter((msg) => msg.id !== nextMessage.id));
+
+    // Clear any leftover inline pending for this session (safety net)
+    setInlinePending((prev) => prev.filter((msg) => msg.sessionId !== activeSessionId));
+    pendingSendsRef.current = pendingSendsRef.current.filter(
+      (entry) => entry.sessionId !== activeSessionId
+    );
 
     // Add user message if not already shown (queued messages are pre-rendered)
     const userMessage: Message = {
@@ -2483,7 +2494,7 @@ export function App({ cwd, version }: AppProps) {
       registryRef.current.setProcessing(activeSession.id, false);
       setQueueFlushTrigger((prev) => prev + 1);
     }
-  }, [activeSessionId, clearPendingSend, messageQueue]);
+  }, [activeSessionId, clearPendingSend]);
 
   const activeQueue = activeSessionId
     ? messageQueue.filter((msg) => msg.sessionId === activeSessionId)
@@ -2562,6 +2573,10 @@ export function App({ cwd, version }: AppProps) {
   useEffect(() => {
     hasPendingToolsRef.current = hasPendingTools;
   }, [hasPendingTools]);
+
+  useEffect(() => {
+    messageQueueRef.current = messageQueue;
+  }, [messageQueue]);
 
   const isBusy = isProcessing || hasPendingTools;
   const stopHint = isBusy && !activeAskQuestion ? '[esc] to stop' : null;
