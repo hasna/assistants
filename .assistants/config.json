@@ -1,0 +1,18 @@
+{
+  "telephony": {
+    "enabled": true,
+    "injection": {
+      "enabled": true,
+      "maxPerTurn": 5
+    },
+    "storage": {
+      "maxCallLogs": 1000,
+      "maxSmsLogs": 5000,
+      "maxAgeDays": 90
+    },
+    "voice": {
+      "recordCalls": false,
+      "maxCallDurationSeconds": 3600
+    }
+  }
+}

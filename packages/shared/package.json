@@ -1,0 +1,50 @@
+{
+  "name": "@hasna/assistants-shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared types and utilities for the Open Assistants ecosystem",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hasna/open-assistants.git",
+    "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/hasna/open-assistants/tree/main/packages/shared#readme",
+  "bugs": {
+    "url": "https://github.com/hasna/open-assistants/issues"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "types",
+    "typescript"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.8",
+    "bun-types": "^1.3.9",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5-20250929",
+    "maxTokens": 8192
+  },
+  "voice": {
+    "enabled": false,
+    "stt": {
+      "provider": "whisper",
+      "model": "whisper-1",
+      "language": "en"
+    },
+    "tts": {
+      "provider": "elevenlabs",
+      "voiceId": "",
+      "model": "eleven_turbo_v2_5"
+    }
+  },
+  "connectors": []
+}

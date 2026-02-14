@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo/
+
+# Local config (user-specific)
+.assistants/settings.local.json
+.assistants/config.local.json
+.assistants/projects/
+.assistants/scripts/
+
+# Secrets
+.secrets/
+.connect/
+.env
+
+# Runtime-generated assistants data
+**/.assistants-data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Temporary files
+tmp/
+temp/
+.checkactions-state.json
+.playwright-mcp/

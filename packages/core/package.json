@@ -1,0 +1,87 @@
+{
+  "name": "@hasna/assistants-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Core runtime library for building AI assistants with Claude",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./runtime": {
+      "types": "./src/runtime/index.ts",
+      "import": "./src/runtime/index.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "import": "./src/*.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hasna/open-assistants.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/hasna/open-assistants/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/hasna/open-assistants/issues"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "claude",
+    "anthropic",
+    "assistant",
+    "tools",
+    "llm"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test --timeout 60000",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "@anthropic-ai/sdk": "^0.74.0",
+    "@aws-sdk/client-s3": "^3.985.0",
+    "@aws-sdk/client-secrets-manager": "^3.985.0",
+    "@aws-sdk/client-ses": "^3.985.0",
+    "@aws-sdk/credential-providers": "^3.985.0",
+    "@hasna/assistants-shared": "workspace:*",
+    "ajv": "^8.17.1",
+    "fast-glob": "^3.3.3",
+    "mailparser": "^3.9.3",
+    "@openai/codex-sdk": "^0.98.0",
+    "openai": "^6.18.0",
+    "resend": "^6.9.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@hasna/runtime-bun": "workspace:^",
+    "@types/bun": "^1.3.8",
+    "@types/mailparser": "^3.4.6",
+    "bun-types": "^1.3.9",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.0"
+  },
+  "peerDependencies": {
+    "@hasna/runtime-bun": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@hasna/runtime-bun": {
+      "optional": true
+    }
+  }
+}

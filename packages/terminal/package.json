@@ -1,0 +1,81 @@
+{
+  "name": "@hasna/assistants",
+  "version": "0.1.0",
+  "description": "AI assistant that runs in your terminal",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "import": "./dist/lib.js"
+    }
+  },
+  "main": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
+  "bin": {
+    "assistants": "./dist/cli.js",
+    "ast": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hasna/open-assistants.git",
+    "directory": "packages/terminal"
+  },
+  "homepage": "https://github.com/hasna/open-assistants#readme",
+  "bugs": {
+    "url": "https://github.com/hasna/open-assistants/issues"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "terminal",
+    "cli",
+    "claude",
+    "anthropic",
+    "chatbot",
+    "ink",
+    "bun"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "bun run src/cli.tsx",
+    "build": "bun run scripts/build.ts",
+    "build:types": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "ink": "^6.6.0",
+    "ink-picture": "^1.3.3",
+    "ink-scroll-view": "^0.3.5",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "marked": "^17.0.1",
+    "marked-terminal": "^7.3.0",
+    "react": "^19.2.4",
+    "react-devtools-core": "^7.0.1"
+  },
+  "devDependencies": {
+    "@hasna/assistants-core": "workspace:*",
+    "@hasna/assistants-shared": "workspace:*",
+    "@hasna/runtime-bun": "workspace:*",
+    "@types/bun": "^1.3.8",
+    "@types/react": "^19.2.13",
+    "bun-types": "^1.3.9",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.0"
+  }
+}
