@@ -22,14 +22,65 @@ export interface ModelDefinition {
  * All available models across all providers
  */
 export const ALL_MODELS: ModelDefinition[] = [
-  // Anthropic Claude Models
+  // Anthropic Claude Models (current generation)
+  {
+    id: 'claude-opus-4-6',
+    provider: 'anthropic',
+    name: 'Claude Opus 4.6',
+    description: 'Most intelligent, best for agents and coding',
+    contextWindow: 200000,
+    maxOutputTokens: 128000,
+    inputCostPer1M: 5,
+    outputCostPer1M: 25,
+    supportsTools: true,
+    supportsStreaming: true,
+    notes: '1M context available in beta',
+  },
+  {
+    id: 'claude-sonnet-4-5-20250929',
+    provider: 'anthropic',
+    name: 'Claude Sonnet 4.5',
+    description: 'Best speed and intelligence balance',
+    contextWindow: 200000,
+    maxOutputTokens: 64000,
+    inputCostPer1M: 3,
+    outputCostPer1M: 15,
+    supportsTools: true,
+    supportsStreaming: true,
+    notes: '1M context available in beta',
+  },
+  {
+    id: 'claude-haiku-4-5-20251001',
+    provider: 'anthropic',
+    name: 'Claude Haiku 4.5',
+    description: 'Fastest, near-frontier intelligence',
+    contextWindow: 200000,
+    maxOutputTokens: 64000,
+    inputCostPer1M: 1,
+    outputCostPer1M: 5,
+    supportsTools: true,
+    supportsStreaming: true,
+  },
+  // Anthropic Claude Legacy Models
   {
     id: 'claude-opus-4-5-20251101',
     provider: 'anthropic',
     name: 'Claude Opus 4.5',
-    description: 'Most capable, best for complex tasks',
+    description: 'Previous most capable model',
     contextWindow: 200000,
     maxOutputTokens: 64000,
+    inputCostPer1M: 5,
+    outputCostPer1M: 25,
+    supportsTools: true,
+    supportsStreaming: true,
+  },
+  {
+    id: 'claude-opus-4-1-20250805',
+    provider: 'anthropic',
+    name: 'Claude Opus 4.1',
+    description: 'High-capability legacy model',
+    contextWindow: 200000,
+    maxOutputTokens: 32000,
     inputCostPer1M: 15,
     outputCostPer1M: 75,
     supportsTools: true,
@@ -47,62 +98,26 @@ export const ALL_MODELS: ModelDefinition[] = [
     supportsTools: true,
     supportsStreaming: true,
   },
+  // OpenAI Reasoning Models
   {
-    id: 'claude-3-5-sonnet-20241022',
-    provider: 'anthropic',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Fast and capable',
-    contextWindow: 200000,
-    maxOutputTokens: 8192,
-    inputCostPer1M: 3,
-    outputCostPer1M: 15,
-    supportsTools: true,
-    supportsStreaming: true,
-  },
-  {
-    id: 'claude-3-5-haiku-20241022',
-    provider: 'anthropic',
-    name: 'Claude 3.5 Haiku',
-    description: 'Fastest, best for simple tasks',
-    contextWindow: 200000,
-    maxOutputTokens: 8192,
-    inputCostPer1M: 1,
-    outputCostPer1M: 5,
-    supportsTools: true,
-    supportsStreaming: true,
-  },
-  // OpenAI GPT Models
-  {
-    id: 'gpt-4o',
+    id: 'o3',
     provider: 'openai',
-    name: 'GPT-4o',
-    description: 'Fast multimodal flagship',
-    contextWindow: 128000,
-    maxOutputTokens: 16384,
-  },
-  {
-    id: 'gpt-4o-mini',
-    provider: 'openai',
-    name: 'GPT-4o Mini',
-    description: 'Affordable small model',
-    contextWindow: 128000,
-    maxOutputTokens: 16384,
-  },
-  {
-    id: 'o1',
-    provider: 'openai',
-    name: 'o1',
-    description: 'Reasoning model for complex tasks',
+    name: 'o3',
+    description: 'Powerful reasoning model',
     contextWindow: 200000,
     maxOutputTokens: 100000,
+    supportsTools: true,
+    supportsStreaming: true,
   },
   {
-    id: 'o1-mini',
+    id: 'o4-mini',
     provider: 'openai',
-    name: 'o1 Mini',
-    description: 'Fast reasoning model',
-    contextWindow: 128000,
-    maxOutputTokens: 65536,
+    name: 'o4 Mini',
+    description: 'Compact reasoning model',
+    contextWindow: 200000,
+    maxOutputTokens: 100000,
+    supportsTools: true,
+    supportsStreaming: true,
   },
   // OpenAI GPT-5.2 Models
   {
@@ -308,7 +323,7 @@ export const ALL_MODELS: ModelDefinition[] = [
  */
 export const ANTHROPIC_MODELS: ModelDefinition[] = ALL_MODELS.filter(m => m.provider === 'anthropic');
 
-export const DEFAULT_MODEL = 'claude-opus-4-5-20251101';
+export const DEFAULT_MODEL = 'claude-opus-4-6';
 
 export const DEFAULT_TEMPERATURE = 1.0;
 export const MIN_TEMPERATURE = 0.0;

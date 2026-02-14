@@ -72,9 +72,9 @@ describe('Model Registry', () => {
     });
 
     it('should return model for OpenAI ID', () => {
-      const model = getModelById('gpt-4o');
+      const model = getModelById('gpt-5.2');
       expect(model).toBeDefined();
-      expect(model?.name).toBe('GPT-4o');
+      expect(model?.name).toBe('GPT-5.2 Thinking');
       expect(model?.provider).toBe('openai');
     });
 
@@ -135,7 +135,7 @@ describe('Model Registry', () => {
   describe('isValidModel', () => {
     it('should return true for valid models', () => {
       expect(isValidModel('claude-opus-4-5-20251101')).toBe(true);
-      expect(isValidModel('gpt-4o')).toBe(true);
+      expect(isValidModel('gpt-5.2')).toBe(true);
       expect(isValidModel('gemini-2.5-pro')).toBe(true);
     });
 
@@ -149,14 +149,14 @@ describe('Model Registry', () => {
       const ids = getAllModelIds();
       expect(ids.length).toBe(MODELS.length);
       expect(ids).toContain('claude-opus-4-5-20251101');
-      expect(ids).toContain('gpt-4o');
+      expect(ids).toContain('gpt-5.2');
     });
   });
 
   describe('getModelDisplayName', () => {
     it('should return display name for valid model', () => {
       expect(getModelDisplayName('claude-opus-4-5-20251101')).toBe('Claude Opus 4.5');
-      expect(getModelDisplayName('gpt-4o')).toBe('GPT-4o');
+      expect(getModelDisplayName('gpt-5.2')).toBe('GPT-5.2 Thinking');
     });
 
     it('should return ID for invalid model', () => {
