@@ -115,7 +115,7 @@ export class ConnectorBridge {
   }
 
   /**
-   * Auto-discover all connect-* CLIs in PATH
+   * Auto-discover all connect-* CLIs in PATH and from `connectors` CLI
    */
   private autoDiscoverConnectorNames(): string[] {
     const connectorNames = new Set<string>();
@@ -168,7 +168,44 @@ export class ConnectorBridge {
       }
     }
 
+    // Also discover connectors installed via @hasna/connectors package.
+    // These live in .connectors/connect-<name>/ directories.
+    const connectorsDir = join(baseCwd, '.connectors');
+    try {
+      const entries = readdirSync(connectorsDir);
+      for (const entry of entries) {
+        if (!entry.startsWith('connect-')) continue;
+        const name = entry.replace('connect-', '');
+        if (name && !name.includes('.')) {
+          connectorNames.add(name);
+        }
+      }
+    } catch {
+      // .connectors directory doesn't exist, skip
+    }
+
     return Array.from(connectorNames);
+  }
+
+  /**
+   * Ensure a connector installed via @hasna/connectors is built
+   * (has bin/index.js). Runs `bun install && bun run build` if needed.
+   */
+  private async ensureConnectorBuilt(connectorDir: string): Promise<boolean> {
+    const binPath = join(connectorDir, 'bin', 'index.js');
+    if (existsSync(binPath)) return true;
+
+    // Check if source exists
+    const pkgPath = join(connectorDir, 'package.json');
+    if (!existsSync(pkgPath)) return false;
+
+    try {
+      const runtime = getRuntime();
+      await runtime.shell`cd ${connectorDir} && bun install --silent && bun run build`.quiet().nothrow();
+      return existsSync(binPath);
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -362,6 +399,18 @@ export class ConnectorBridge {
   }
 
   private async resolveConnectorCli(name: string): Promise<string | null> {
+    // First check .connectors/connect-<name>/bin/index.js (installed via @hasna/connectors)
+    const baseCwd = this.cwd || process.cwd();
+    const connectorDir = join(baseCwd, '.connectors', `connect-${name}`);
+    const connectorBin = join(connectorDir, 'bin', 'index.js');
+    if (existsSync(join(connectorDir, 'package.json'))) {
+      const built = await this.ensureConnectorBuilt(connectorDir);
+      if (built && existsSync(connectorBin)) {
+        return connectorBin;
+      }
+    }
+
+    // Fall back to PATH-based discovery (standalone connect-* CLIs)
     const base = `connect-${name}`;
     const candidates = [base];
     const extCandidates = ['.exe', '.cmd', '.bat', '.ps1'];
