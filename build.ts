@@ -87,9 +87,8 @@ await Bun.write(outputFile, content);
 // Make executable
 await $`chmod +x ${outputFile}`;
 
-// Copy only skills and commands (not runtime data like feedback, tasks, schedules)
+// Copy commands and ASSISTANTS.md (skills are loaded from ~/.skill/ via @hasna/skills)
 await $`mkdir -p ${outdir}/.assistants`;
-await $`cp -r .assistants/skills ${outdir}/.assistants/skills 2>/dev/null || true`;
 await $`cp -r .assistants/commands ${outdir}/.assistants/commands 2>/dev/null || true`;
 await $`cp .assistants/ASSISTANTS.md ${outdir}/.assistants/ASSISTANTS.md 2>/dev/null || true`;
 

@@ -1,6 +1,6 @@
 /**
  * Installs the main-loop and watchdog SKILL.md files into
- * `~/.assistants/shared/skills/` if they don't already exist.
+ * `~/.skill/` if they don't already exist.
  *
  * These skills are loaded by SkillLoader on startup just like any other skill.
  */
@@ -117,8 +117,7 @@ async function writeSkillIfNeeded(dir: string, skillName: string, content: strin
  * @returns names of skills that were installed or migrated
  */
 export async function installHeartbeatSkills(): Promise<string[]> {
-  const baseDir = process.env.ASSISTANTS_DIR || join(homedir(), '.assistants');
-  const sharedSkillsDir = join(baseDir, 'shared', 'skills');
+  const sharedSkillsDir = join(homedir(), '.skill');
   const installed: string[] = [];
 
   const results = await Promise.all([
