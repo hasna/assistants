@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // Initialize Bun runtime before any core imports
-import { setRuntime } from '@hasna/assistants-core';
+import { setRuntime, closeDatabase } from '@hasna/assistants-core';
 import { bunRuntime } from '@hasna/runtime-bun';
 setRuntime(bunRuntime);
 
@@ -10,6 +10,34 @@ import { App } from './components/App';
 import { runHeadless } from './headless';
 import { sanitizeTerminalOutput } from './output/sanitize';
 import { parseArgs, main } from './cli/main';
+
+// --- Graceful shutdown handling ---
+
+function cleanup(): void {
+  closeDatabase();
+}
+
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  cleanup();
+  process.exit(0);
+});
+
+process.on('uncaughtException', (error) => {
+  process.stderr.write(`Uncaught exception: ${error}\n`);
+  cleanup();
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  process.stderr.write(`Unhandled rejection: ${reason}\n`);
+  cleanup();
+  process.exit(1);
+});
 
 // Version is embedded at build time via define in build.ts
 const VERSION = process.env.ASSISTANTS_VERSION || 'dev';
@@ -168,6 +196,7 @@ if (options.print !== null) {
   waitUntilExit().then(() => {
     // Restore original stdout.write before exiting
     disableSyncOutput();
+    cleanup();
     process.exit(0);
   });
 }

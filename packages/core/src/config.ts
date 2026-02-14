@@ -2,6 +2,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import type { AssistantsConfig, HookConfig, ConnectorsConfigShared } from '@hasna/assistants-shared';
 import { getRuntime, hasRuntime } from './runtime';
+import { deepMerge } from './utils/deep-merge';
 
 /**
  * Merge connectors config, handling both string[] and object formats
@@ -304,270 +305,30 @@ const DEFAULT_CONFIG: AssistantsConfig = {
 function mergeConfig(base: AssistantsConfig, override?: Partial<AssistantsConfig>): AssistantsConfig {
   if (!override) return base;
 
-  const mergedVoice = base.voice || override.voice
-    ? {
-        ...(base.voice || {}),
-        ...(override.voice || {}),
-        enabled: override.voice?.enabled ?? base.voice?.enabled ?? false,
-        stt: {
-          ...(base.voice?.stt || {}),
-          ...(override.voice?.stt || {}),
-          provider: override.voice?.stt?.provider ?? base.voice?.stt?.provider ?? 'whisper',
-        },
-        tts: {
-          ...(base.voice?.tts || {}),
-          ...(override.voice?.tts || {}),
-          provider: override.voice?.tts?.provider ?? base.voice?.tts?.provider ?? 'elevenlabs',
-          voiceId: override.voice?.tts?.voiceId ?? base.voice?.tts?.voiceId ?? '',
-        },
-        autoListen: override.voice?.autoListen ?? base.voice?.autoListen ?? false,
-        wake: {
-          ...(base.voice?.wake || {}),
-          ...(override.voice?.wake || {}),
-          enabled: override.voice?.wake?.enabled ?? base.voice?.wake?.enabled ?? false,
-          word: override.voice?.wake?.word ?? base.voice?.wake?.word ?? '',
-        },
-      }
-    : undefined;
+  // Deep merge handles recursive object merging and array replacement.
+  // Special cases that need non-generic logic are applied as post-merge fixups.
+  const merged = deepMerge(base as Record<string, unknown>, override as Record<string, unknown>) as AssistantsConfig;
 
-  return {
-    ...base,
-    ...override,
-    llm: {
-      ...base.llm,
-      ...(override.llm || {}),
-    },
-    voice: mergedVoice,
-    connectors: mergeConnectorsConfig(base.connectors, override.connectors),
-    skills: override.skills ?? base.skills,
-    hooks: override.hooks ?? base.hooks,
-    scheduler: {
-      ...(base.scheduler || {}),
-      ...(override.scheduler || {}),
-    },
-    heartbeat: {
-      ...(base.heartbeat || {}),
-      ...(override.heartbeat || {}),
-    },
-    context: {
-      ...(base.context || {}),
-      ...(override.context || {}),
-      injection: {
-        ...(base.context?.injection || {}),
-        ...(override.context?.injection || {}),
-        injections: {
-          ...(base.context?.injection?.injections || {}),
-          ...(override.context?.injection?.injections || {}),
-        },
-      },
-    },
-    energy: {
-      ...(base.energy || {}),
-      ...(override.energy || {}),
-    },
-    validation: {
-      ...(base.validation || {}),
-      ...(override.validation || {}),
-      perTool: {
-        ...(base.validation?.perTool || {}),
-        ...(override.validation?.perTool || {}),
-      },
-    },
-    inbox: {
-      ...(base.inbox || {}),
-      ...(override.inbox || {}),
-      // Only merge storage if at least one config defines it with bucket
-      storage: (base.inbox?.storage?.bucket || override.inbox?.storage?.bucket)
-        ? {
-            bucket: override.inbox?.storage?.bucket ?? base.inbox?.storage?.bucket ?? '',
-            region: override.inbox?.storage?.region ?? base.inbox?.storage?.region ?? 'us-east-1',
-            prefix: override.inbox?.storage?.prefix ?? base.inbox?.storage?.prefix,
-            credentialsProfile: override.inbox?.storage?.credentialsProfile ?? base.inbox?.storage?.credentialsProfile,
-          }
-        : undefined,
-      ses: {
-        ...(base.inbox?.ses || {}),
-        ...(override.inbox?.ses || {}),
-      },
-      resend: {
-        ...(base.inbox?.resend || {}),
-        ...(override.inbox?.resend || {}),
-      },
-      cache: {
-        ...(base.inbox?.cache || {}),
-        ...(override.inbox?.cache || {}),
-      },
-    },
-    wallet: {
-      ...(base.wallet || {}),
-      ...(override.wallet || {}),
-      // Only merge secrets if region is configured
-      secrets: (base.wallet?.secrets?.region || override.wallet?.secrets?.region)
-        ? {
-            region: override.wallet?.secrets?.region ?? base.wallet?.secrets?.region ?? 'us-east-1',
-            prefix: override.wallet?.secrets?.prefix ?? base.wallet?.secrets?.prefix,
-            credentialsProfile: override.wallet?.secrets?.credentialsProfile ?? base.wallet?.secrets?.credentialsProfile,
-          }
-        : undefined,
-      security: {
-        ...(base.wallet?.security || {}),
-        ...(override.wallet?.security || {}),
-      },
-    },
-    secrets: {
-      ...(base.secrets || {}),
-      ...(override.secrets || {}),
-      storage: {
-        ...(base.secrets?.storage || {}),
-        ...(override.secrets?.storage || {}),
-      },
-      security: {
-        ...(base.secrets?.security || {}),
-        ...(override.secrets?.security || {}),
-      },
-    },
-    jobs: {
-      ...(base.jobs || {}),
-      ...(override.jobs || {}),
-      connectors: {
-        ...(base.jobs?.connectors || {}),
-        ...(override.jobs?.connectors || {}),
-      },
-    },
-    messages: {
-      ...(base.messages || {}),
-      ...(override.messages || {}),
-      injection: {
-        ...(base.messages?.injection || {}),
-        ...(override.messages?.injection || {}),
-      },
-      storage: {
-        ...(base.messages?.storage || {}),
-        ...(override.messages?.storage || {}),
-      },
-    },
-    webhooks: {
-      ...(base.webhooks || {}),
-      ...(override.webhooks || {}),
-      injection: {
-        ...(base.webhooks?.injection || {}),
-        ...(override.webhooks?.injection || {}),
-      },
-      storage: {
-        ...(base.webhooks?.storage || {}),
-        ...(override.webhooks?.storage || {}),
-      },
-      security: {
-        ...(base.webhooks?.security || {}),
-        ...(override.webhooks?.security || {}),
-      },
-    },
-    channels: {
-      ...(base.channels || {}),
-      ...(override.channels || {}),
-      injection: {
-        ...(base.channels?.injection || {}),
-        ...(override.channels?.injection || {}),
-      },
-      storage: {
-        ...(base.channels?.storage || {}),
-        ...(override.channels?.storage || {}),
-      },
-    },
-    orders: {
-      ...(base.orders || {}),
-      ...(override.orders || {}),
-      injection: {
-        ...(base.orders?.injection || {}),
-        ...(override.orders?.injection || {}),
-      },
-      storage: {
-        ...(base.orders?.storage || {}),
-        ...(override.orders?.storage || {}),
-      },
-    },
-    telephony: {
-      ...(base.telephony || {}),
-      ...(override.telephony || {}),
-      injection: {
-        ...(base.telephony?.injection || {}),
-        ...(override.telephony?.injection || {}),
-      },
-      storage: {
-        ...(base.telephony?.storage || {}),
-        ...(override.telephony?.storage || {}),
-      },
-      voice: {
-        ...(base.telephony?.voice || {}),
-        ...(override.telephony?.voice || {}),
-      },
-    },
-    memory: {
-      ...(base.memory || {}),
-      ...(override.memory || {}),
-      injection: {
-        ...(base.memory?.injection || {}),
-        ...(override.memory?.injection || {}),
-      },
-      storage: {
-        ...(base.memory?.storage || {}),
-        ...(override.memory?.storage || {}),
-      },
-      scopes: {
-        ...(base.memory?.scopes || {}),
-        ...(override.memory?.scopes || {}),
-      },
-    },
-    subassistants: {
-      ...(base.subassistants || {}),
-      ...(override.subassistants || {}),
-      // Arrays are replaced, not merged
-      defaultTools: override.subassistants?.defaultTools ?? base.subassistants?.defaultTools,
-      forbiddenTools: override.subassistants?.forbiddenTools ?? base.subassistants?.forbiddenTools,
-    },
-    input: {
-      ...(base.input || {}),
-      ...(override.input || {}),
-      paste: {
-        ...(base.input?.paste || {}),
-        ...(override.input?.paste || {}),
-        thresholds: {
-          ...(base.input?.paste?.thresholds || {}),
-          ...(override.input?.paste?.thresholds || {}),
-        },
-      },
-    },
-    budget: {
-      ...(base.budget || {}),
-      ...(override.budget || {}),
-      session: {
-        ...(base.budget?.session || {}),
-        ...(override.budget?.session || {}),
-      },
-      assistant: {
-        ...(base.budget?.assistant || {}),
-        ...(override.budget?.assistant || {}),
-      },
-      swarm: {
-        ...(base.budget?.swarm || {}),
-        ...(override.budget?.swarm || {}),
-      },
-      project: {
-        ...(base.budget?.project || {}),
-        ...(override.budget?.project || {}),
-      },
-    },
-    guardrails: {
-      ...(base.guardrails || {}),
-      ...(override.guardrails || {}),
-    },
-    capabilities: {
-      ...(base.capabilities || {}),
-      ...(override.capabilities || {}),
-      allowedTools: override.capabilities?.allowedTools ?? base.capabilities?.allowedTools,
-      deniedTools: override.capabilities?.deniedTools ?? base.capabilities?.deniedTools,
-    },
-  };
+  // Connectors have special array-vs-object handling
+  merged.connectors = mergeConnectorsConfig(base.connectors, override.connectors);
+
+  // inbox.storage: only create if at least one config defines a bucket
+  if (merged.inbox) {
+    const hasBucket = base.inbox?.storage?.bucket || override.inbox?.storage?.bucket;
+    if (!hasBucket) {
+      merged.inbox.storage = undefined;
+    }
+  }
+
+  // wallet.secrets: only create if region is configured
+  if (merged.wallet) {
+    const hasRegion = base.wallet?.secrets?.region || override.wallet?.secrets?.region;
+    if (!hasRegion) {
+      merged.wallet.secrets = undefined;
+    }
+  }
+
+  return merged;
 }
 
 /**

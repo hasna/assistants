@@ -1,6 +1,6 @@
 import type { Tool } from '@hasna/assistants-shared';
 import type { ToolExecutor } from './registry';
-import { ErrorCodes, ToolExecutionError } from '../errors';
+import { ErrorCodes, ToolExecutionError, toolError, toolPermissionDenied } from '../errors';
 import { getSecurityLogger } from '../security/logger';
 import { validateBashCommand } from '../security/bash-validator';
 import { isPrivateHostOrResolved } from '../security/network-validator';
@@ -428,14 +428,7 @@ export class BashTool {
         },
         sessionId: (input.sessionId as string) || 'unknown',
       });
-      throw new ToolExecutionError(securityCheck.reason || 'Blocked command', {
-        toolName: 'bash',
-        toolInput: input,
-        code: ErrorCodes.TOOL_PERMISSION_DENIED,
-        recoverable: false,
-        retryable: false,
-        suggestion: 'Use read-only commands only.',
-      });
+      throw toolPermissionDenied('bash', securityCheck.reason || 'Blocked command', input as Record<string, unknown>);
     }
 
     if (!allowAll && !allowGlobalInstall) {
@@ -452,16 +445,10 @@ export class BashTool {
             },
             sessionId: (input.sessionId as string) || 'unknown',
           });
-          throw new ToolExecutionError(
+          throw toolPermissionDenied(
+            'bash',
             'This command is not allowed. Only read-only commands are permitted (ls, cat, grep, find, git status/log/diff, etc.)',
-            {
-              toolName: 'bash',
-              toolInput: input,
-              code: ErrorCodes.TOOL_PERMISSION_DENIED,
-              recoverable: false,
-              retryable: false,
-              suggestion: 'Use a read-only command from the allowed list.',
-            }
+            input as Record<string, unknown>,
           );
         }
       }
@@ -480,17 +467,7 @@ export class BashTool {
         },
         sessionId: (input.sessionId as string) || 'unknown',
       });
-      throw new ToolExecutionError(
-        'Command not allowed: env/printenv disabled by config.',
-        {
-          toolName: 'bash',
-          toolInput: input,
-          code: ErrorCodes.TOOL_PERMISSION_DENIED,
-          recoverable: false,
-          retryable: false,
-          suggestion: 'Enable validation.perTool.bash.allowEnv to allow env/printenv.',
-        }
-      );
+      throw toolPermissionDenied('bash', 'Command not allowed: env/printenv disabled by config.', input as Record<string, unknown>);
     }
 
     if (!allowAll && !allowGlobalInstall) {
@@ -511,16 +488,10 @@ export class BashTool {
           },
           sessionId: (input.sessionId as string) || 'unknown',
         });
-        throw new ToolExecutionError(
+        throw toolPermissionDenied(
+          'bash',
           'Command not in allowed list. Permitted commands: cat, head, tail, ls, find, grep, wc, file, stat, pwd, which, echo, curl, git status/log/diff/branch/show, connect-*',
-          {
-            toolName: 'bash',
-            toolInput: input,
-            code: ErrorCodes.TOOL_PERMISSION_DENIED,
-            recoverable: false,
-            retryable: false,
-            suggestion: 'Use a permitted read-only command, or enable validation.perTool.bash.allowPackageInstall for bun install -g.',
-          }
+          input as Record<string, unknown>,
         );
       }
 
@@ -537,16 +508,10 @@ export class BashTool {
           },
           sessionId: (input.sessionId as string) || 'unknown',
         });
-        throw new ToolExecutionError(
+        throw toolPermissionDenied(
+          'bash',
           `Cannot fetch from local/private network addresses for security reasons: ${ssrfCheck.blockedUrl}`,
-          {
-            toolName: 'bash',
-            toolInput: input,
-            code: ErrorCodes.TOOL_PERMISSION_DENIED,
-            recoverable: false,
-            retryable: false,
-            suggestion: 'Use a public URL instead of localhost or internal network addresses.',
-          }
+          input as Record<string, unknown>,
         );
       }
     }
@@ -575,24 +540,16 @@ export class BashTool {
       const exitCode = await proc.exited;
 
       if (exitCode !== 0) {
-        throw new ToolExecutionError(`Exit code ${exitCode}\n${stderr || stdout}`.trim(), {
-          toolName: 'bash',
-          toolInput: input,
-          code: ErrorCodes.TOOL_EXECUTION_FAILED,
-          recoverable: true,
-          retryable: false,
+        throw toolError('bash', `Exit code ${exitCode}\n${stderr || stdout}`.trim(), {
+          input: input as Record<string, unknown>,
         });
       }
 
       return stdout.trim() || 'Command completed successfully (no output)';
     } catch (error) {
       if (error instanceof ToolExecutionError) throw error;
-      throw new ToolExecutionError(error instanceof Error ? error.message : String(error), {
-        toolName: 'bash',
-        toolInput: input,
-        code: ErrorCodes.TOOL_EXECUTION_FAILED,
-        recoverable: true,
-        retryable: false,
+      throw toolError('bash', error instanceof Error ? error.message : String(error), {
+        input: input as Record<string, unknown>,
       });
     }
   };

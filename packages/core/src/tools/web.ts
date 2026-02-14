@@ -1,11 +1,8 @@
 import type { Tool } from '@hasna/assistants-shared';
-import { lookup as dnsLookup } from 'node:dns/promises';
 import type { ToolExecutor } from './registry';
 import { ErrorCodes, ToolExecutionError } from '../errors';
-
-function abortController(controller: AbortController): void {
-  controller.abort();
-}
+import { isPrivateHostOrResolved, setDnsLookupForTests as setDnsLookupForTestsNetwork, isIpLiteral, normalizeHostname, isPrivateHost, isPrivateIPv4 } from '../security/network-validator';
+import { fetchWithTimeout } from '../utils/fetch-with-timeout';
 
 // Maximum bytes to read from response to prevent memory exhaustion
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -127,23 +124,14 @@ export class WebFetchTool {
         });
       }
 
-        const controller = new AbortController();
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
-        try {
-          timeoutId = setTimeout(abortController, timeout, controller);
-          response = await fetch(currentUrl, {
-            signal: controller.signal,
+        response = await fetchWithTimeout(currentUrl, {
+            timeout,
             redirect: 'manual',
             headers: {
               'User-Agent': 'assistants/1.0 (AI Assistant)',
               'Accept': extractType === 'json' ? 'application/json' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             },
           });
-        } finally {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-        }
 
         if ([301, 302, 303, 307, 308].includes(response.status)) {
           const location = response.headers.get('location');
@@ -311,24 +299,13 @@ export class WebSearchTool {
     try {
       // Use DuckDuckGo HTML search (no API key needed)
       const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-      const controller = new AbortController();
-      let timeoutId: ReturnType<typeof setTimeout> | null = null;
-      const response = await (async () => {
-        try {
-          timeoutId = setTimeout(abortController, timeout, controller);
-          return await fetch(searchUrl, {
-            headers: {
-              'User-Agent': 'assistants/1.0 (AI Assistant)',
-              'Accept': 'text/html',
-            },
-            signal: controller.signal,
-          });
-        } finally {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-        }
-      })();
+      const response = await fetchWithTimeout(searchUrl, {
+        timeout,
+        headers: {
+          'User-Agent': 'assistants/1.0 (AI Assistant)',
+          'Accept': 'text/html',
+        },
+      });
 
       if (!response.ok) {
         throw new ToolExecutionError(`Search request failed with HTTP ${response.status}`, {
@@ -442,8 +419,8 @@ function parseDuckDuckGoResults(html: string, maxResults: number): Array<{ title
     } catch {
       url = rawUrl;
     }
-    const title = match[2].trim();
-    const snippet = match[3].trim().replace(/&[^;]+;/g, ' ');
+    const title = (match[2] || '').trim();
+    const snippet = (match[3] || '').trim().replace(/&[^;]+;/g, ' ');
 
     if (url && title && !url.startsWith('//duckduckgo.com')) {
       results.push({ title, url, snippet });
@@ -476,16 +453,13 @@ async function fetchInstantAnswerResults(
   timeout: number,
 ): Promise<Array<{ title: string; url: string; snippet: string }>> {
   const apiUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-  const controller = new AbortController();
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   try {
-    timeoutId = setTimeout(abortController, timeout, controller);
-    const response = await fetch(apiUrl, {
+    const response = await fetchWithTimeout(apiUrl, {
+      timeout,
       headers: {
         'User-Agent': 'assistants/1.0 (AI Assistant)',
         'Accept': 'application/json',
       },
-      signal: controller.signal,
     });
     if (!response.ok) {
       return [];
@@ -494,10 +468,6 @@ async function fetchInstantAnswerResults(
     return parseInstantAnswerJson(data, maxResults);
   } catch {
     return [];
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
   }
 }
 
@@ -643,13 +613,9 @@ export class CurlTool {
         });
       }
 
-        const controller = new AbortController();
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
-        try {
-          timeoutId = setTimeout(abortController, timeout, controller);
-          response = await fetch(currentUrl, {
+        response = await fetchWithTimeout(currentUrl, {
+            timeout,
             method,
-            signal: controller.signal,
             redirect: 'manual',
             headers: {
               'User-Agent': 'assistants/1.0 (AI Assistant)',
@@ -657,11 +623,6 @@ export class CurlTool {
             },
             body: body && ['POST', 'PUT'].includes(method) ? body : undefined,
           });
-        } finally {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-        }
 
         if ([301, 302, 303, 307, 308].includes(response.status)) {
           if (!['GET', 'HEAD'].includes(method)) {
@@ -776,131 +737,11 @@ export class WebTools {
   }
 }
 
-type LookupFn = typeof dnsLookup;
-let lookupFn: LookupFn = dnsLookup;
-
-export function setDnsLookupForTests(fn?: LookupFn): void {
-  lookupFn = fn ?? dnsLookup;
-}
-
-async function isPrivateHostOrResolved(hostname: string): Promise<boolean> {
-  if (isPrivateHost(hostname)) {
-    return true;
-  }
-
-  const host = normalizeHostname(hostname);
-  if (host === '' || isIpLiteral(host)) {
-    return false;
-  }
-
-  try {
-    const results = await lookupFn(host, { all: true });
-    for (const result of results) {
-      if (isPrivateHost(result.address)) {
-        return true;
-      }
-    }
-    return false;
-  } catch {
-    // SECURITY: Fail-closed on DNS errors to prevent SSRF bypass via DNS failures
-    // (e.g., attacker-controlled DNS returning SERVFAIL then resolving to internal IP)
-    return true;
-  }
-}
-
-function isIpLiteral(hostname: string): boolean {
-  if (hostname.includes(':')) return true;
-  if (/^\d+$/.test(hostname)) return true;
-  return /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
-}
-
-function normalizeHostname(hostname: string): string {
-  let host = hostname.toLowerCase();
-  if (host.startsWith('[') && host.endsWith(']')) {
-    host = host.slice(1, -1);
-  }
-
-  const zoneIndex = host.indexOf('%');
-  if (zoneIndex !== -1) {
-    host = host.slice(0, zoneIndex);
-  }
-
-  host = host.replace(/\.$/, '');
-  return host;
-}
-
-function isPrivateHost(hostname: string): boolean {
-  let host = normalizeHostname(hostname);
-
-  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return true;
-  if (host === '127.0.0.1' || host === '::1' || host === '::' || host === '0:0:0:0:0:0:0:0') return true;
-  if (/^\d+$/.test(host)) return true;
-
-  if (host.startsWith('::ffff:')) {
-    const mapped = host.slice('::ffff:'.length);
-    if (mapped.includes('.')) {
-      return isPrivateHost(mapped);
-    }
-
-    const hexMatch = mapped.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
-    if (hexMatch) {
-      const high = Number.parseInt(hexMatch[1], 16);
-      const low = Number.parseInt(hexMatch[2], 16);
-      const octets = [
-        (high >> 8) & 0xff,
-        high & 0xff,
-        (low >> 8) & 0xff,
-        low & 0xff,
-      ];
-      return isPrivateIPv4(octets);
-    }
-    return false;
-  }
-
-  if (host.includes(':')) {
-    if (host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80:')) {
-      return true;
-    }
-    return false;
-  }
-
-  const match = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (!match) return false;
-
-  const octets: number[] = [];
-  for (let i = 1; i <= 4; i++) {
-    const value = Number.parseInt(match[i], 10);
-    if (Number.isNaN(value)) return false;
-    octets.push(value);
-  }
-
-  return isPrivateIPv4(octets);
-}
-
-function isPrivateIPv4(octets: number[]): boolean {
-  // 0.0.0.0/8 - "This" network
-  if (octets[0] === 0) return true;
-  // 10.0.0.0/8 - Private
-  if (octets[0] === 10) return true;
-  // 100.64.0.0/10 - Carrier-grade NAT
-  if (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) return true;
-  // 169.254.0.0/16 - Link-local
-  if (octets[0] === 169 && octets[1] === 254) return true;
-  // 192.168.0.0/16 - Private
-  if (octets[0] === 192 && octets[1] === 168) return true;
-  // 172.16.0.0/12 - Private
-  if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
-  // 127.0.0.0/8 - Loopback
-  if (octets[0] === 127) return true;
-  // 224.0.0.0/4 - Multicast (SSRF protection)
-  if (octets[0] >= 224 && octets[0] <= 239) return true;
-  // 240.0.0.0/4 - Reserved (SSRF protection)
-  if (octets[0] >= 240) return true;
-  return false;
+export function setDnsLookupForTests(fn?: Parameters<typeof setDnsLookupForTestsNetwork>[0]): void {
+  setDnsLookupForTestsNetwork(fn);
 }
 
 export const __test__ = {
-  abortController,
   extractReadableText,
   parseDuckDuckGoResults,
   isPrivateHostOrResolved,

@@ -107,9 +107,14 @@ export function isPrivateHost(hostname: string): boolean {
     return false;
   }
 
-  // Pure IPv6 - just check for loopback
+  // Pure IPv6 - check for loopback, ULA, and link-local
   if (host.includes(':')) {
-    return host === '::1' || host === '::' || host === '0:0:0:0:0:0:0:0';
+    if (host === '::1' || host === '::' || host === '0:0:0:0:0:0:0:0') return true;
+    // fc00::/7 - Unique Local Addresses (ULA)
+    if (host.startsWith('fc') || host.startsWith('fd')) return true;
+    // fe80::/10 - Link-local
+    if (host.startsWith('fe80:')) return true;
+    return false;
   }
 
   // IPv4 dotted-decimal

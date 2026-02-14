@@ -257,15 +257,15 @@ export class TelephonyManager {
    * Put a call on hold — replaces the media stream with hold music TwiML
    */
   async holdCall(callSid?: string): Promise<TelephonyOperationResult> {
-    if (!this.twilioClient) {
-      return { success: false, message: 'Twilio is not configured.' };
-    }
-
     const call = callSid
       ? this.callManager.getCall(callSid)
       : this.getMostRecentActiveCall();
     if (!call) {
       return { success: false, message: callSid ? `Call ${callSid} not found.` : 'No active call.' };
+    }
+
+    if (!this.twilioClient) {
+      return { success: false, message: 'Twilio is not configured.' };
     }
     if (call.state === 'on-hold') {
       return { success: false, message: 'Call is already on hold.' };
@@ -291,15 +291,15 @@ export class TelephonyManager {
    * Resume a held call — redirects back to voice webhook to reconnect stream
    */
   async resumeCall(callSid?: string): Promise<TelephonyOperationResult> {
-    if (!this.twilioClient) {
-      return { success: false, message: 'Twilio is not configured.' };
-    }
-
     const call = callSid
       ? this.callManager.getCall(callSid)
       : this.getMostRecentHeldCall();
     if (!call) {
       return { success: false, message: callSid ? `Call ${callSid} not found.` : 'No held call.' };
+    }
+
+    if (!this.twilioClient) {
+      return { success: false, message: 'Twilio is not configured.' };
     }
     if (call.state !== 'on-hold') {
       return { success: false, message: 'Call is not on hold.' };
@@ -326,15 +326,15 @@ export class TelephonyManager {
    * End a call — hangs up via Twilio API
    */
   async endCall(callSid?: string): Promise<TelephonyOperationResult> {
-    if (!this.twilioClient) {
-      return { success: false, message: 'Twilio is not configured.' };
-    }
-
     const call = callSid
       ? this.callManager.getCall(callSid)
       : this.getMostRecentActiveCall() || this.getMostRecentHeldCall();
     if (!call) {
       return { success: false, message: callSid ? `Call ${callSid} not found.` : 'No active call.' };
+    }
+
+    if (!this.twilioClient) {
+      return { success: false, message: 'Twilio is not configured.' };
     }
 
     // Close the voice bridge
