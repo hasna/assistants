@@ -23,12 +23,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hasna/open-assistants.git",
+    "url": "https://github.com/hasna/assistants.git",
     "directory": "packages/terminal"
   },
-  "homepage": "https://github.com/hasna/open-assistants#readme",
+  "homepage": "https://github.com/hasna/assistants#readme",
   "bugs": {
-    "url": "https://github.com/hasna/open-assistants/issues"
+    "url": "https://github.com/hasna/assistants/issues"
   },
   "keywords": [
     "ai",

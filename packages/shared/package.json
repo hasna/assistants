@@ -24,12 +24,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hasna/open-assistants.git",
+    "url": "https://github.com/hasna/assistants.git",
     "directory": "packages/shared"
   },
-  "homepage": "https://github.com/hasna/open-assistants/tree/main/packages/shared#readme",
+  "homepage": "https://github.com/hasna/assistants/tree/main/packages/shared#readme",
   "bugs": {
-    "url": "https://github.com/hasna/open-assistants/issues"
+    "url": "https://github.com/hasna/assistants/issues"
   },
   "keywords": [
     "ai",

@@ -44,7 +44,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hasna/open-assistants.git"
+    "url": "git+https://github.com/hasna/assistants.git"
   },
   "keywords": [
     "ai",
@@ -60,9 +60,9 @@
   "author": "Hasna",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hasna/open-assistants/issues"
+    "url": "https://github.com/hasna/assistants/issues"
   },
-  "homepage": "https://github.com/hasna/open-assistants#readme",
+  "homepage": "https://github.com/hasna/assistants#readme",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "bun": ">=1.3.9"

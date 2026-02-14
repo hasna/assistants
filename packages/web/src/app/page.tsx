@@ -18,7 +18,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-const REPO = 'https://github.com/hasna/open-assistants';
+const REPO = 'https://github.com/hasna/assistants';
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);

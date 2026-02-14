@@ -188,8 +188,8 @@ client.disconnect();
 ## Development
 
 ```bash
-git clone https://github.com/hasna/open-assistants.git
-cd open-assistants
+git clone https://github.com/hasna/assistants.git
+cd assistants
 pnpm install
 pnpm dev
 ```
