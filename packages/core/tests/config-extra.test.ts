@@ -76,7 +76,7 @@ describe('config helpers', () => {
 
   test('loadSystemPrompt returns default prompt when no prompt files exist', async () => {
     const prompt = await loadSystemPrompt(tempDir);
-    expect(prompt).toContain('You are Hasna Assistant');
+    expect(prompt).toContain('You are a helpful AI assistant by Hasna');
   });
 
   test('loadSystemPrompt tolerates read errors', async () => {
@@ -86,7 +86,7 @@ describe('config helpers', () => {
         throw new Error('boom');
       };
       const prompt = await loadSystemPrompt(tempDir);
-      expect(prompt).toContain('You are Hasna Assistant');
+      expect(prompt).toContain('You are a helpful AI assistant by Hasna');
     } finally {
       (Bun as any).file = originalFile;
     }

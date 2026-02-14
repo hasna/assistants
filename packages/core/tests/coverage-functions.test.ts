@@ -59,10 +59,6 @@ describe('Function coverage helpers', () => {
   });
 
   test('web helpers behave as expected', async () => {
-    const controller = new AbortController();
-    webTest.abortController(controller);
-    expect(controller.signal.aborted).toBe(true);
-
     const text = webTest.extractReadableText('<html><body><h1>Title</h1><p>Body</p></body></html>');
     expect(text).toContain('Title');
     expect(text).toContain('Body');

@@ -3,6 +3,11 @@ import { mkdtemp, rm, readFile, access, mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { closeDatabase, resetDatabaseSingleton } from '../src/database';
+import { setRuntime } from '../src/runtime';
+import { bunRuntime } from '@hasna/runtime-bun';
+
+// Ensure the Bun runtime is available for database access
+setRuntime(bunRuntime);
 
 // ── Conventions ─────────────────────────────────────────────────────
 

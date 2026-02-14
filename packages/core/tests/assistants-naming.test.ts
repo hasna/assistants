@@ -5,6 +5,12 @@ import { SharedWorkspaceManager } from '../src/workspace/shared';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { setRuntime } from '../src/runtime';
+import { bunRuntime } from '@hasna/runtime-bun';
+import { closeDatabase, resetDatabaseSingleton } from '../src/database';
+
+// Ensure the Bun runtime is available for database access
+setRuntime(bunRuntime);
 
 describe('Assistants naming unification', () => {
   let loader: CommandLoader;
@@ -49,8 +55,14 @@ describe('Assistants naming unification', () => {
     let wsDir: string;
 
     beforeEach(() => {
+      resetDatabaseSingleton();
       wsDir = join(testDir, 'workspaces');
       wsManager = new SharedWorkspaceManager(wsDir);
+    });
+
+    afterEach(() => {
+      closeDatabase();
+      resetDatabaseSingleton();
     });
 
     test('uses assistants/ directory for participants', () => {
