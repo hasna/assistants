@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Core runtime library for building AI assistants with Claude",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "exports": {
     ".": {

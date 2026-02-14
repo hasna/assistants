@@ -2,7 +2,7 @@
   "name": "@hasna/assistants-mcp",
   "version": "0.1.0",
   "description": "MCP server for running AI assistants",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "assistants-mcp": "./dist/index.js"
